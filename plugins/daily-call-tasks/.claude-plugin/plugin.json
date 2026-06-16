@@ -3,6 +3,6 @@
   "version": "1.0.0",
   "description": "Builds a cited digest of the action items from the calls you personally attended (default: yesterday). Reads Google Calendar + the notes-bot Meeting Resources, spawns sonnet sub-agents per call to extract your action items with verbatim citations. Read-only, unattended-safe; designed to run as a morning cloud routine.",
   "author": { "name": "Misha Skripkovsky", "url": "https://github.com/MishaSkripkovsky" },
-  "homepage": "https://github.com/MishaSkripkovsky/snf-automation-plugins/tree/main/plugins/daily-call-tasks",
+  "homepage": "https://github.com/speedandfunction/snf-automation-plugins/tree/main/plugins/daily-call-tasks",
   "license": "MIT"
 }
