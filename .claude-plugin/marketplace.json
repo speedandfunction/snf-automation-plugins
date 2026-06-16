@@ -13,7 +13,7 @@
       "author": { "name": "Misha Skripkovsky" },
       "source": "./plugins/mn-team-links",
       "category": "productivity",
-      "homepage": "https://github.com/speedandfunction/snf-automation-plugins/tree/main/plugins/mn-team-links"
+      "homepage": "https://github.com/MishaSkripkovsky/snf-automation-plugins/tree/main/plugins/mn-team-links"
     },
     {
       "name": "mn-team-onboard",
@@ -21,7 +21,7 @@
       "author": { "name": "Misha Skripkovsky" },
       "source": "./plugins/mn-team-onboard",
       "category": "productivity",
-      "homepage": "https://github.com/speedandfunction/snf-automation-plugins/tree/main/plugins/mn-team-onboard"
+      "homepage": "https://github.com/MishaSkripkovsky/snf-automation-plugins/tree/main/plugins/mn-team-onboard"
     },
     {
       "name": "daily-call-tasks",
@@ -29,7 +29,7 @@
       "author": { "name": "Misha Skripkovsky" },
       "source": "./plugins/daily-call-tasks",
       "category": "productivity",
-      "homepage": "https://github.com/speedandfunction/snf-automation-plugins/tree/main/plugins/daily-call-tasks"
+      "homepage": "https://github.com/MishaSkripkovsky/snf-automation-plugins/tree/main/plugins/daily-call-tasks"
     }
   ]
 }

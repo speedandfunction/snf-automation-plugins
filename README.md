@@ -6,7 +6,7 @@ for the **MN Service** (Meeting Notes) n8n pipeline and daily call digests.
 ## Install
 
 ```text
-/plugin marketplace add speedandfunction/snf-automation-plugins
+/plugin marketplace add MishaSkripkovsky/snf-automation-plugins
 /plugin install mn-team-links@snf-automation-plugins
 /reload-plugins
 ```
