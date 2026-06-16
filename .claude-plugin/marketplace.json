@@ -1,0 +1,35 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "snf-automation-plugins",
+  "description": "Speed & Function Automation department's Claude Code plugins — internal tooling for the MN Service (Meeting Notes) pipeline and daily call digests.",
+  "owner": {
+    "name": "Speed & Function — Automation",
+    "email": "automation.tools@speedandfunction.com"
+  },
+  "plugins": [
+    {
+      "name": "mn-team-links",
+      "description": "Resolve an MN Service team to its Google Drive transcript/notes folder link, read live from the n8n MN Service config via the connected n8n MCP. Read-only; prints a Team -> Drive-folder table. Requires the n8n MCP connected.",
+      "author": { "name": "Misha Skripkovsky" },
+      "source": "./plugins/mn-team-links",
+      "category": "productivity",
+      "homepage": "https://github.com/speedandfunction/snf-automation-plugins/tree/main/plugins/mn-team-links"
+    },
+    {
+      "name": "mn-team-onboard",
+      "description": "Onboard a new team to the MN Service pipeline from a team tag + parent Drive folder link: creates Drive subfolders via a token-protected n8n webhook and adds one teamsRaw routing entry (Stage then Prod), self-validated with rollback. Writer skill; requires the n8n MCP + Google Drive connector + webhook token.",
+      "author": { "name": "Misha Skripkovsky" },
+      "source": "./plugins/mn-team-onboard",
+      "category": "productivity",
+      "homepage": "https://github.com/speedandfunction/snf-automation-plugins/tree/main/plugins/mn-team-onboard"
+    },
+    {
+      "name": "daily-call-tasks",
+      "description": "Cited digest of the action items from the calls you personally attended (default: yesterday). Reads Google Calendar + notes-bot Meeting Notes, sonnet sub-agents per call extract YOUR action items with citations. Read-only, unattended-safe; built to run as a morning cloud routine. Requires Google Calendar + Drive connectors.",
+      "author": { "name": "Misha Skripkovsky" },
+      "source": "./plugins/daily-call-tasks",
+      "category": "productivity",
+      "homepage": "https://github.com/speedandfunction/snf-automation-plugins/tree/main/plugins/daily-call-tasks"
+    }
+  ]
+}

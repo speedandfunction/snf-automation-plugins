@@ -1,0 +1,8 @@
+{
+  "name": "mn-team-onboard",
+  "version": "1.0.0",
+  "description": "Onboard a new team to the MN Service (Meeting Notes) n8n pipeline from a team tag + parent Drive folder link. Creates the Drive subfolders via a token-protected n8n webhook, adds one routing entry to teamsRaw (Stage then Prod), self-validates with rollback, and reports.",
+  "author": { "name": "Misha Skripkovsky", "url": "https://github.com/MishaSkripkovsky" },
+  "homepage": "https://github.com/speedandfunction/snf-automation-plugins/tree/main/plugins/mn-team-onboard",
+  "license": "MIT"
+}
