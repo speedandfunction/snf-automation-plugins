@@ -21,9 +21,12 @@ done
 grep -qi "date_closed != null" "$CUP"            && pass "clickup: date_closed!=null post-filter"     || err "clickup: missing date_closed!=null post-filter"
 grep -qi "subtasks=true" "$CUP"                   && pass "clickup: subtasks=true (not false)"          || err "clickup: must pull subtasks=true + roll-up"
 grep -qi "under-count" "$CUP"                      && pass "clickup: notes subtasks=false under-counts"  || err "clickup: missing subtasks=false under-count warning"
-grep -Eqi "Step .?\\\\d" "$CUP"                    && pass "clickup: suppresses ^Step N recurring leaves"|| err "clickup: missing Step-N suppression"
+grep -Eqi "suppress.*[Ss]tep|recurring step|Step [0-9/]" "$CUP" && pass "clickup: suppresses ^Step N recurring leaves" || err "clickup: missing Step-N suppression"
 grep -qi "whole" "$CUP" && grep -qi "NEVER a keep/drop filter" "$CUP" && pass "clickup: whole-space scope, prefix=group key" || err "clickup: scoping rule (whole space / prefix not filter) missing"
 grep -qi "paginate" "$CUP" || grep -qi "page until" "$CUP"          && pass "clickup: paginate-to-exhaustion" || err "clickup: missing pagination rule"
+grep -qi "review" "$CUP" && grep -qi "null" "$CUP" && pass "clickup: documents review/null-date_closed leak" || err "clickup: missing review/null-date_closed trap note"
+grep -qi "date_updated" "$CUP" && grep -qi "alone" "$CUP" && pass "clickup: in-progress not date_updated-alone" || err "clickup: in-progress must not key on date_updated alone"
+grep -Eqi "reopen|re-close" "$CUP" && pass "clickup: reopen/re-close drift flagged" || err "clickup: missing reopen/re-close drift rule"
 
 # honesty / anti-slop invariants
 grep -qi "No verification vocabulary" "$SKILL"     && pass "skill: no-verification-vocabulary rule"      || err "skill: missing no-verification rule"
@@ -32,6 +35,8 @@ grep -qi "Never invent" "$SKILL"                   && pass "skill: never-invent 
 grep -qi "Read-only" "$SKILL"                       && pass "skill: read-only rule"                       || err "skill: missing read-only rule"
 grep -Eqi "never auto-post|no auto-post|never .*auto-post" "$SKILL" && pass "skill: no auto-post"        || err "skill: missing no-auto-post rule"
 grep -qi "Sonnet sub-agents only" "$SKILL"         && pass "skill: sonnet-only sub-agents"               || err "skill: missing sonnet-only rule"
+grep -Eqi "verb-lint gate|second-pass gate|lines checked" "$SKILL" && pass "skill: verb-lint is an enforced gate (Step 6)" || err "skill: verb-lint must be an enforced gate, not advisory"
+grep -Eqi "DEGRADED|notes unavailable|ClickUp-only" "$SKILL" && pass "skill: notes-missing -> loud ClickUp-only, not silent" || err "skill: missing notes-degraded guard"
 grep -qi "so-what" "$OUT" && grep -qi "verb-lint" "$OUT" && pass "output: so-what + verb-lint defined"   || err "output: so-what/verb-lint missing"
 grep -Eqi "shipped|delivered" "$OUT"               && pass "output: verb-lint bans shipped on non-ship cards" || err "output: verb-lint deny-list missing"
 

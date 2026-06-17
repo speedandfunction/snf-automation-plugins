@@ -11,6 +11,7 @@ On every row the person who closed the ticket, wrote the note, and spoke on the 
 
 ## v0 scope (decided by review; rest is v2)
 - **In:** AUT meeting-notes (primary) + ClickUp (dated signal), cited, print-only draft, top-3 per section, so-what translation + anti-worklog verb-lint.
+- **Known v0 limitation:** the **Priorities** section is the weakest — Geekbot uniquely carried forward-looking per-person intent/blockers; v0 reconstructs Priorities from ClickUp open/priority + the notes' next-steps, which is a proxy. *Closed* and *In progress* are solid.
 - **v2:** Geekbot per-person signal · a verified tier · fuzzy call↔task join · Slack/Doc delivery · deterministic ranking.
 
 ## Try it locally (dry-run)
@@ -44,8 +45,11 @@ plugins/ai-digest/
   tests/run.sh                   # doc-contract test for the load-bearing invariants
 ```
 
-## Guarantees
+## Guarantees (enforced by the skill at runtime)
 - Read-only — zero writes to ClickUp / Drive / Slack / anywhere; never auto-posts.
 - Cite-or-drop — no line without a real ClickUp URL or Meeting-Notes Doc section.
-- No verification vocabulary; `date_closed` is labelled "closed", never auto-"shipped".
+- No verification vocabulary; `date_closed` is labelled "closed", never auto-"shipped" (Step-6 verb-lint gate).
+- Notes-missing is loud, not silent: if the week's notes don't parse, the digest says "ClickUp-only" rather than masquerading as the full picture.
 - Always emits a result (even "nothing this week") so a silent failure is distinguishable from a quiet week.
+
+> `tests/run.sh` is a **doc-contract** test: it asserts these rules are *written into* the skill (and scans for committed secrets). It does not execute the skill — runtime behavior is verified by a real `--dry-run` (see above).

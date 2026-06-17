@@ -13,7 +13,8 @@ Draft the automation department's **weekly cross-department digest**: three shor
 ## What this is NOT (v0 scope — decided by review, deferred to v2)
 
 - **No "verified" / "corroborated" / 🟢 tier and no confidence badges.** On every row the person who closed the ticket, wrote the note, and spoke on the call is the *same person* — there is no independent witness, so a "verified" label would overclaim to other departments. The **citation is the honesty**. Say "Closed this week (per ClickUp)", never "Verified/Shipped".
-- **No Geekbot.** (v2 enrichment.)
+- **No Geekbot (v2).** Geekbot uniquely carried per-person *forward-looking* intent/blockers, so **the Priorities bucket is the weaker one in v0** — it's reconstructed from ClickUp open/priority items + the notes' next-steps, which is a proxy, not the standup signal. Closed/In-progress are solid; Priorities is "best available".
+- **Calls = the Meeting-Notes Docs, not raw transcripts.** The skill reads the auto-generated **Meeting-Notes Doc** for each AUT call (the dept's own call output), not the raw transcript and not Geekbot. A call with no notes section is invisible to it — acceptable because the notes bot covers AUT calls, but say so if a known call is missing.
 - **No fuzzy call↔task join.** Only an exact ClickUp task-id/URL appearing in a note links the two; otherwise the note and the task stand on their own citations. (Fuzzy join = v2.)
 - **No delivery, no ticket writes, no auto-post.** Print-only. (Slack/Doc delivery = v2.)
 - **No lexicographic ranking determinism.** v0 ranks by an LLM top-N with a shown rationale + a stable sort key. (Deterministic scoring = v2.)
@@ -53,9 +54,9 @@ Draft the automation department's **weekly cross-department digest**: three shor
 
 Probe each source with the smallest possible read and print a table `[OK | BROKEN | OFF] <source> — <note>`:
 - **ClickUp** — one `clickup_get_workspace_hierarchy` on the space (confirms reach + lists/statuses). On auth-fail, surface the re-auth hint and STOP that source (don't silently proceed).
-- **Notes** — one Drive `list/search` in the notes folder (confirms reach; the 403 trap = the running account isn't shared into the notes-bot folder → say so).
+- **Notes** — reachability is NOT enough; you MUST confirm there is **parseable content for the target week**. List the notes folder (403 trap = the running account isn't shared into the notes-bot folder → say so), then open the rolling Meeting-Notes Doc and confirm **≥1 `### *Date:*` section falls inside the week window**. Try BOTH header spellings `### *Date:*` and `### Date:` (the header drifted once before) and warn if only the non-asterisk form matches. If the folder is reachable but **no in-week date-section parses**, mark Notes **DEGRADED** (not OK) — do not silently treat it as present.
 
-If **both** are BROKEN, print the preflight table and stop with a one-line reason — never emit a confident-but-empty digest. If one is OK, proceed with it and label the missing half in the coverage line.
+If **both** are BROKEN, print the preflight table and stop with a one-line reason — never emit a confident-but-empty digest. If Notes is BROKEN/DEGRADED but ClickUp is OK, proceed **ClickUp-only** and the coverage footer MUST say so explicitly ("notes unavailable this week — ClickUp-only; this digest is a task list, not the full narrative") — this is the guard against silently shipping a closed-ticket worklog that reads as "the team did little".
 
 ## Step 2 — SCOPE (the week window, in UTC)
 
@@ -82,7 +83,11 @@ For each section, pick the **top 3** by significance for an outside reader — c
 
 ## Step 6 — EMIT (two outputs, print-only)
 
-Produce **both**, verified to agree, and print them. Write run artifacts under `~/.claude/ai-digest/runs/<YYYY-Www>/` (gitignored, local).
+Before emitting, run two **gates** (don't just assert them — perform them and report the counts in the editor file):
+- **verb-lint gate** — scan every reader-facing line for ship-vocab (`shipped/delivered/launched/released`); for each hit, check the underlying card type per `references/output-style.md`; rewrite any on a Research/Investigate/Spike/Review/Sync/Evaluate/Audit/housekeeping card. Log `verb-lint: N lines checked, M rewritten`. A card whose name doesn't match the keyword list but is clearly housekeeping (e.g. "Close out … leftovers") is still demoted from ship-vocab — judge by the work, not just the keyword.
+- **consistency check** — every reader-copy line must have a matching citation in the editor file; assert the reader top-3 ⊆ the editor pools and that no reader line is uncited. Report `cite-check: K reader lines, K cited`.
+
+Then print **both** outputs. Write run artifacts under `~/.claude/ai-digest/runs/<YYYY-Www>/` (gitignored, local).
 
 1. **Reader copy** (clean, paste-into-a-doc-ready) — no preamble, no confidence markers, no raw URLs inline:
    - A 2-3 sentence **TL;DR**.
