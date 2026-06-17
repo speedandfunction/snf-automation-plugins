@@ -30,6 +30,14 @@
       "source": "./plugins/daily-call-tasks",
       "category": "productivity",
       "homepage": "https://github.com/speedandfunction/snf-automation-plugins/tree/main/plugins/daily-call-tasks"
+    },
+    {
+      "name": "ai-digest",
+      "description": "Drafts the automation department's weekly cross-department digest (top-3 Closed-this-week / In-progress / Priorities) from the team's own meeting-notes (primary narrative) + ClickUp (the dated 'what closed' signal). Notes-led, every line cited, print-only — a human edits the draft and the lead publishes; never auto-posts. Read-only against Drive + ClickUp; makes no 'verified' claims (the citation is the honesty). Requires the ClickUp MCP + a Google Drive connector.",
+      "author": { "name": "Misha Skripkovsky" },
+      "source": "./plugins/ai-digest",
+      "category": "productivity",
+      "homepage": "https://github.com/speedandfunction/snf-automation-plugins/tree/main/plugins/ai-digest"
     }
   ]
 }
