@@ -40,7 +40,7 @@ grep -Eqi "DEGRADED|notes unavailable|ClickUp-only" "$SKILL" && pass "skill: not
 grep -Eqi "Never .find|do not search|without searching the disk" "$SKILL" && pass "skill: no filesystem-search-for-skill-files rule" || err "skill: missing no-find rule (hang guard)"
 grep -Eqi "paste.*inline|rules inline|inline into each sub-agent" "$SKILL" && pass "skill: sub-agents get rules inline (no file lookup)" || err "skill: sub-agents must get rules inline"
 grep -Eqi "rules are COMPLETE in this prompt" "$SKILL" && pass "skill: sub-agent prompt declares rules complete (no file)" || err "skill: sub-agent prompt must declare rules complete"
-grep -Eqi "do NOT mention any file path|no file path" "$SKILL" && pass "skill: no file path leaked into sub-agent prompt" || err "skill: must not leak a file path into sub-agent prompt"
+grep -q "Do NOT mention any file path in a sub-agent" "$SKILL" && pass "skill: explicit no-file-path-in-subagent-prompt rule" || err "skill: must carry the explicit no-file-path-in-subagent-prompt rule"
 grep -Eqi "error is not|backstop at 20|page ERRORS" "$SKILL" && pass "skill: pagination has an error/backstop cap" || err "skill: pagination needs an error/backstop cap"
 grep -Eqi "carve-out" "$CUP" && pass "clickup: reopen needs date_created via Closed-pool get_task carve-out" || err "clickup: reopen-drift must note date_created carve-out"
 grep -Eqi "do NOT call .get_task. across the open pools|get_task. across the open pools" "$SKILL" && pass "skill: no get_task across open pools (hang guard)" || err "skill: missing get_task open-pool guard"
