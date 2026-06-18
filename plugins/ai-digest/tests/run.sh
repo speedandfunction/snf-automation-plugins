@@ -37,6 +37,9 @@ grep -Eqi "never auto-post|no auto-post|never .*auto-post" "$SKILL" && pass "ski
 grep -qi "Sonnet sub-agents only" "$SKILL"         && pass "skill: sonnet-only sub-agents"               || err "skill: missing sonnet-only rule"
 grep -Eqi "verb-lint gate|second-pass gate|lines checked" "$SKILL" && pass "skill: verb-lint is an enforced gate (Step 6)" || err "skill: verb-lint must be an enforced gate, not advisory"
 grep -Eqi "DEGRADED|notes unavailable|ClickUp-only" "$SKILL" && pass "skill: notes-missing -> loud ClickUp-only, not silent" || err "skill: missing notes-degraded guard"
+grep -Eqi "Never .find|do not search|without searching the disk" "$SKILL" && pass "skill: no filesystem-search-for-skill-files rule" || err "skill: missing no-find rule (hang guard)"
+grep -Eqi "paste.*inline|rules inline|inline into each sub-agent" "$SKILL" && pass "skill: sub-agents get rules inline (no file lookup)" || err "skill: sub-agents must get rules inline"
+grep -Eqi "do NOT call .get_task. per task|not .get_task. per task" "$SKILL" && pass "skill: no get_task-per-task blowup" || err "skill: missing get_task-per-task guard"
 grep -qi "so-what" "$OUT" && grep -qi "verb-lint" "$OUT" && pass "output: so-what + verb-lint defined"   || err "output: so-what/verb-lint missing"
 grep -Eqi "shipped|delivered" "$OUT"               && pass "output: verb-lint bans shipped on non-ship cards" || err "output: verb-lint deny-list missing"
 
