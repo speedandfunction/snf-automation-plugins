@@ -27,6 +27,7 @@ Draft the automation department's **weekly cross-department digest**: three shor
 | `--dry-run` / `--print-only` | Print the draft only (also the default behavior) | on |
 | `--tz=<IANA>` | Timezone for the human-readable week label only; the data window is computed in **UTC** (see Step 2) | resolved per Step 0 |
 | `--max-subagents=N` | Cap on parallel gather sub-agents | `4` |
+| `--setup` / `--onboard` | **Interactive** mode: walk the human through configuring the optional Geekbot source LOCALLY (the key never leaves their machine). See `## Mode: --setup`. | off |
 
 ## Hard rules (NON-NEGOTIABLE)
 
@@ -59,7 +60,7 @@ Draft the automation department's **weekly cross-department digest**: three shor
 Probe each source with the smallest possible read and print a table `[OK | BROKEN | OFF] <source> — <note>`:
 - **ClickUp** — one `clickup_get_workspace_hierarchy` on the space (confirms reach + lists/statuses). On auth-fail, surface the re-auth hint and STOP that source (don't silently proceed).
 - **Notes** — reachability is NOT enough; you MUST confirm there is **parseable content for the target week**. List the notes folder (403 trap = the running account isn't shared into the notes-bot folder → say so), then open the rolling Meeting-Notes Doc and confirm **≥1 `### *Date:*` section falls inside the week window**. Try BOTH header spellings `### *Date:*` and `### Date:` (the header drifted once before) and warn if only the non-asterisk form matches. If the folder is reachable but **no in-week date-section parses**, mark Notes **DEGRADED** (not OK) — do not silently treat it as present.
-- **Geekbot** — if no `~/.geekbot/env` key or no pinned `standup_id` → `[OFF] Geekbot — not configured` and skip it entirely (this is the normal state today). If configured: one `source ~/.geekbot/env && curl … /v1/standups/` (key via the leak-proof form in `references/geekbot-playbook.md`) to confirm the key authenticates (HTTP 200) and the pinned standup resolves. On 401/empty/error → `[OFF]`/`[BROKEN]` and proceed on notes+ClickUp; never HALT, never silently treat OFF as present.
+- **Geekbot** — if no `~/.geekbot/env` key or no pinned `standup_id` → `[OFF] Geekbot — not configured (run /ai-digest --setup to enable it locally)` and skip it entirely (this is the normal state today). If configured: one `source ~/.geekbot/env && curl … /v1/standups/` (key via the leak-proof form in `references/geekbot-playbook.md`) to confirm the key authenticates (HTTP 200) and the pinned standup resolves. On 401/empty/error → `[OFF]`/`[BROKEN]` and proceed on notes+ClickUp; never HALT, never silently treat OFF as present.
 
 Geekbot being OFF is normal and never blocks. If **both ClickUp and Notes** are BROKEN, print the preflight table and stop with a one-line reason — never emit a confident-but-empty digest. If Notes is BROKEN/DEGRADED but ClickUp is OK, proceed **ClickUp-only** and the coverage footer MUST say so explicitly ("notes unavailable this week — ClickUp-only; this digest is a task list, not the full narrative") — this is the guard against silently shipping a closed-ticket worklog that reads as "the team did little".
 
@@ -113,4 +114,47 @@ Then print **both** outputs. Write run artifacts under `~/.claude/ai-digest/runs
 
 ## After printing — tell the human the next move (do not do it)
 
-End with one line: this is a **draft** — rewrite for voice/outcome, then publish. Note that the digest is **cited, not "verified"** (cross-dept readers should trust the links, not a badge). Mention that Geekbot per-person signal, a verified tier, and Slack/Doc delivery are deferred to v2.
+End with one line: this is a **draft** — rewrite for voice/outcome, then publish. Note that the digest is **cited, not "verified"** (cross-dept readers should trust the links, not a badge). If Geekbot was OFF, mention it can be enabled locally with `/ai-digest --setup`. A verified tier and Slack/Doc delivery are deferred to v2.
+
+## Mode: --setup — enable the optional Geekbot source LOCALLY (interactive)
+
+Triggered by `--setup` / `--onboard`. This is the ONLY interactive mode — it asks questions and writes ONE local file. Everything stays on the user's machine; **nothing here is ever committed to the repo or printed back**.
+
+**Frame it for the user up front:** "I'll help you turn on Geekbot for the digest. Your API key stays in a local file in your home folder (`~/.geekbot/env`) — it is never put in the repo, never printed, never sent anywhere. I only read it by name at run time."
+
+Walk these steps, pausing for the human (use AskUserQuestion where a choice is needed):
+
+1. **Tier / key — free if you can.** Ask how many people ACTIVELY answer the AUT standup. If **> 10** → the workspace is already on Basic (Starter caps at 10) → the API key is **free**; generate it at `https://app.geekbot.com/dashboard/api-webhooks`. If **≤ 10** → either upgrade to Basic (~$3/user-mo) OR **borrow a key from someone already on a Basic workspace** (Sashko has one; Andy owns/admins the standup). The key must belong to a **participant of the shared AUT standup** (so it can read everyone — see step 4).
+
+2. **Store the key locally (never in the repo).** Tell the user to run, in their own terminal (do NOT type the key into chat):
+   ```bash
+   mkdir -p ~/.geekbot && umask 177
+   printf 'GEEKBOT_API_KEY=%s\n' 'PASTE_YOUR_KEY_HERE' > ~/.geekbot/env
+   chmod 600 ~/.geekbot/env
+   ```
+   Confirm `~/.geekbot/env` exists and is `chmod 600`. This file lives in `$HOME`, outside any git repo; never add it anywhere tracked. (If they keep secrets elsewhere, accept any path and record it in config — but default to `~/.geekbot/env`.)
+
+3. **Resolve the standup id + roster** (reads, never writes Geekbot). Run the leak-proof form:
+   ```bash
+   source ~/.geekbot/env && printf 'header = "Authorization: %s"\n' "$GEEKBOT_API_KEY" | curl -sS -K - https://api.geekbot.com/v1/standups/ \
+   | python3 -c "import sys,json;[print(s['id'],'|',s['name'],'|',[u['username'] for u in s.get('users',[])]) for s in json.load(sys.stdin)]"
+   ```
+   Show the list; have the user pick the AUT standup. Capture its `id` and the `users[]` roster (the team).
+
+4. **Coverage test — confirm ONE key reads ALL members.** Pull last week's reports WITHOUT `user_id` and list distinct reporters:
+   ```bash
+   source ~/.geekbot/env && printf 'header = "Authorization: %s"\n' "$GEEKBOT_API_KEY" | curl -sS -K - "https://api.geekbot.com/v1/reports/?standup_id=<ID>&after=$(date -v-7d +%s)&limit=100" \
+   | python3 -c "import sys,json;r=json.load(sys.stdin);print('reports',len(r));print('reporters',sorted({x['member']['username'] for x in r}))"
+   ```
+   PASS iff the reporters include people **other than the key owner**, covering the roster from step 3. If only the key owner appears → wrong key / per-person standups → go back to step 1 for a key that's a participant of the shared standup. (This is what makes "all reports of all members from one key" work.)
+
+5. **Build the question→bucket map.** From a report row's `questions[]`, list the real standup questions and ask the human to classify EACH: `PAST` (what was done) / `FUTURE` (what's next) / `BLOCKER` / `EXCLUDE` (mood, ambiguous like "what are you working on?"). Never guess tense.
+
+6. **Write the local config** (`~/.claude/ai-digest/config.md`, the skill's own config — not the repo) with the pinned values:
+   ```
+   Geekbot: standup_id <ID> ("<name>"); roster <usernames>; key GEEKBOT_API_KEY from ~/.geekbot/env (source it, never print).
+   Geekbot question map: "<q1>"=PAST | "<q2>"=FUTURE | "<q3>"=BLOCKER | "<mood q>"=EXCLUDE
+   ```
+   Show the user the file content before writing; write only on confirm.
+
+7. **Done.** Tell them: Geekbot is now ON for `/ai-digest` (enrich-only — it corroborates lines + a "From standups" lane, never originates a theme). It stays OFF on any machine without `~/.geekbot/env`. Re-run `--setup` any time to change it.
