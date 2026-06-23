@@ -7,13 +7,14 @@ DIR="$(cd "$(dirname "$0")/.." && pwd)"
 SKILL="$DIR/skills/ai-digest/SKILL.md"
 CUP="$DIR/skills/ai-digest/references/clickup-playbook.md"
 OUT="$DIR/skills/ai-digest/references/output-style.md"
+GB="$DIR/skills/ai-digest/references/geekbot-playbook.md"
 PJ="$DIR/.claude-plugin/plugin.json"
 fail=0
 pass(){ echo "PASS: $1"; }
 err(){ echo "FAIL: $1"; fail=1; }
 
 # files exist
-for f in "$SKILL" "$CUP" "$OUT" "$PJ" "$DIR/commands/ai-digest.md"; do
+for f in "$SKILL" "$CUP" "$OUT" "$GB" "$PJ" "$DIR/commands/ai-digest.md"; do
   [ -f "$f" ] && pass "exists: ${f#$DIR/}" || err "missing: ${f#$DIR/}"
 done
 
@@ -58,5 +59,14 @@ else
   pass "secret-scan: no credential-looking strings"
 fi
 
+# Geekbot invariants
+grep -Eqi "source ~/.geekbot/env && curl|source .*env.*&&.*curl" "$GB" && pass "geekbot: env sourced INSIDE the curl call" || err "geekbot: key must be sourced inside the same call"
+grep -Eqi "never in argv|-K -|stdin" "$GB" && pass "geekbot: secret via stdin not argv" || err "geekbot: key must not be in argv"
+grep -Eqi "never originate|never creates a .Closed" "$GB" && pass "geekbot: never originates a theme / Closed" || err "geekbot: must never originate"
+grep -qi "coverage < 0.6\|coverage.*0.6\|< 0.6" "$GB" && pass "geekbot: coverage floor 0.6" || err "geekbot: missing coverage floor"
+grep -Eqi "MAX 100|limit 100|limit=100" "$GB" && pass "geekbot: limit<=100 (not 200)" || err "geekbot: limit must be <=100"
+grep -qi "EXCLUDE" "$GB" && grep -qi "question" "$GB" && pass "geekbot: pinned question->bucket map w/ EXCLUDE" || err "geekbot: missing pinned bucket map"
+grep -Eqi "OFF unless a key|OFF unless|Geekbot is .OFF|not configured" "$SKILL" && pass "skill: Geekbot OFF-by-default graceful" || err "skill: Geekbot must be OFF without a key"
+grep -Eqi "From standups \(unverified\)" "$SKILL" && pass "skill: labelled From-standups lane" || err "skill: missing From-standups lane"
 echo
 [ "$fail" -eq 0 ] && { echo "ALL CONTRACT CHECKS PASSED"; exit 0; } || { echo "CONTRACT CHECKS FAILED"; exit 1; }

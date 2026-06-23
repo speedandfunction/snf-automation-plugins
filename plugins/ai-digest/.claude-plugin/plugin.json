@@ -1,8 +1,11 @@
 {
   "name": "ai-digest",
-  "version": "0.1.0",
-  "description": "Drafts a weekly cross-department AI-Automation digest (top-3 closed / in-progress / priorities) from the department's own meeting-notes (primary narrative) + ClickUp (the dated 'what closed' signal). Notes-led, every line cited, print-only — a human edits the draft and the lead publishes. Read-only against Drive + ClickUp; makes NO 'verified' claims (the citation is the honesty). Scaffold patterns adapted from Sasha Marchuk's log-time + the sibling daily-call-tasks skill.",
-  "author": { "name": "Misha Skripkovsky", "url": "https://github.com/MishaSkripkovsky" },
+  "version": "0.2.0",
+  "description": "Drafts a weekly cross-department AI-Automation digest (top-3 closed / in-progress / priorities) from the department's own meeting-notes (primary narrative) + ClickUp (the dated 'what closed' signal). Notes-led, every line cited, print-only \u2014 a human edits the draft and the lead publishes. Read-only against Drive + ClickUp; makes NO 'verified' claims (the citation is the honesty). Geekbot is an OPTIONAL enrich-only 3rd source (OFF unless a key is configured): it corroborates existing lines + adds a labelled 'From standups (unverified)' lane, never originates a theme or a 'Closed' item. Scaffold patterns adapted from Sasha Marchuk's log-time + the sibling daily-call-tasks skill.",
+  "author": {
+    "name": "Misha Skripkovsky",
+    "url": "https://github.com/MishaSkripkovsky"
+  },
   "homepage": "https://github.com/speedandfunction/snf-automation-plugins/tree/main/plugins/ai-digest",
   "license": "MIT"
 }

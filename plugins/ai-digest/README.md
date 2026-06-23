@@ -9,10 +9,10 @@ It is **notes-led**: the team's own meeting-notes are the primary narrative; **C
 ## Honest by design — no "verified" claims
 On every row the person who closed the ticket, wrote the note, and spoke on the call is the **same person** — there is no independent witness, so the digest makes **no "verified / corroborated" claims and shows no confidence badge**. The bucket is *"Closed this week (per ClickUp)"* and the **citation is the proof**. The human editor + an AUT-internal dry-run are the real trust layer.
 
-## v0 scope (decided by review; rest is v2)
-- **In:** AUT meeting-notes (primary) + ClickUp (dated signal), cited, print-only draft, top-3 per section, so-what translation + anti-worklog verb-lint.
-- **Known v0 limitation:** the **Priorities** section is the weakest — Geekbot uniquely carried forward-looking per-person intent/blockers; v0 reconstructs Priorities from ClickUp open/priority + the notes' next-steps, which is a proxy. *Closed* and *In progress* are solid.
-- **v2:** Geekbot per-person signal · a verified tier · fuzzy call↔task join · Slack/Doc delivery · deterministic ranking.
+## Scope
+- **Always-on sources:** AUT meeting-notes (primary narrative) + ClickUp (dated signal), cited, print-only draft, top-3 per section, so-what translation + anti-worklog verb-lint.
+- **Geekbot (optional, enrich-only):** if you put a `GEEKBOT_API_KEY` in `~/.geekbot/env` and pin a `standup_id` + question→bucket map in `~/.claude/ai-digest/config.md`, Geekbot **corroborates** existing notes/ClickUp lines (adds a `(per Geekbot)` citation) and feeds a labelled **"From standups (unverified)"** lane (blockers / forward intent / off-ticket work) — strengthening the otherwise-weak **Priorities** bucket. It **never originates a theme or a "Closed" item** (it's self-reported, the weakest evidence), and a sparse week (<60% reporters) goes editor-file only. **Without a key the digest runs identically on notes+ClickUp.** Setup + the one-time coverage test: `skills/ai-digest/references/geekbot-playbook.md`.
+- **v2:** a verified tier · fuzzy call↔task join · Slack/Doc delivery · deterministic ranking.
 
 ## Try it locally (dry-run)
 From inside this repo (so the project skill is discovered), pre-approving the read-only tools it needs:
