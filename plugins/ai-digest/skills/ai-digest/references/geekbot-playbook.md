@@ -6,8 +6,8 @@ Every fact below is verified against the official `geekbot-com/geekbot-mcp` sour
 
 ## Access — resolve before relying on Geekbot (free first)
 - API access is a **Basic (paid) tier** feature; the free Starter plan (≤10 active participants) does NOT expose the API. **If the AUT standup has >10 active participants the team is already on Basic → the key is free.**
-- The key is **personal/per-user** (no workspace/admin key). A key whose owner is a **participant of the shared AUT standup** reads **every member's** answers for that standup (omit `user_id` → all members). So one borrowed key (Sashko's / Andy's) covers the team — IFF the owner is in the standup.
-- Get the key into `~/.geekbot/env` as `GEEKBOT_API_KEY=...` (gitignored). Pin the resolved `standup_id` and the question→bucket map in `~/.claude/ai-digest/config.md` (see below).
+- The key is **personal/per-user** (no workspace/admin key). A key whose owner is a **participant of the shared AUT standup reads EVERY member's answers for that standup in ONE call** — `GET /v1/reports/?standup_id=<id>` **with `user_id` OMITTED returns all participants' reports** (confirmed in the official `geekbot-mcp` `fetch_reports`: "user_id … default None … means for all members"). So one key (Sashko's / Andy's, or a dedicated account) pulls the WHOLE team from the shared channel — exactly the goal. Never loop per person.
+- **The key is LOCAL ONLY.** It lives in `~/.geekbot/env` (the user's `$HOME`, OUTSIDE this repo) as `GEEKBOT_API_KEY=...`, `chmod 600`. It is **never committed** (`.env`/`*.env` are gitignored, and it isn't in the repo tree anyway), **never printed/echoed/logged**, and **never sent anywhere** — the skill only references `$GEEKBOT_API_KEY` by name inside the curl call. The interactive `/ai-digest --setup` flow walks the human through creating it on their own machine (they paste the key into their own terminal, never into chat). Pin the resolved `standup_id` + question→bucket map in `~/.claude/ai-digest/config.md` (also local, not the repo).
 
 ### Coverage test (run ONCE when the key arrives, before trusting Geekbot)
 ```bash

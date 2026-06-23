@@ -68,5 +68,12 @@ grep -Eqi "MAX 100|limit 100|limit=100" "$GB" && pass "geekbot: limit<=100 (not 
 grep -qi "EXCLUDE" "$GB" && grep -qi "question" "$GB" && pass "geekbot: pinned question->bucket map w/ EXCLUDE" || err "geekbot: missing pinned bucket map"
 grep -Eqi "OFF unless a key|OFF unless|Geekbot is .OFF|not configured" "$SKILL" && pass "skill: Geekbot OFF-by-default graceful" || err "skill: Geekbot must be OFF without a key"
 grep -Eqi "From standups \(unverified\)" "$SKILL" && pass "skill: labelled From-standups lane" || err "skill: missing From-standups lane"
+# Geekbot onboarding + local-key safety
+grep -qi "Mode: --setup" "$SKILL" && pass "skill: interactive --setup onboarding mode" || err "skill: missing --setup onboarding mode"
+grep -Eqi "never put in the repo|never committed|stays in a local file|outside any git repo|outside this repo" "$SKILL" && pass "skill: setup frames key as LOCAL / never-in-repo" || err "skill: setup must state key never goes to the repo"
+grep -qi "never into chat\|own terminal\|do NOT type the key into chat\|do NOT type the key" "$SKILL" && pass "skill: user pastes key in own terminal, not chat" || err "skill: key must not be typed into chat"
+grep -qi "user_id" "$GB" && grep -Eqi "OMITTED|omit .user_id|all members|all participants" "$GB" && pass "geekbot: omit user_id => ALL team members in one call" || err "geekbot: must fetch all members"
+grep -qi "never committed\|LOCAL ONLY\|outside this repo\|outside .* repo" "$GB" && pass "geekbot-playbook: key is local-only / never committed" || err "geekbot-playbook: must state key is local-only"
+grep -q -- "--setup" "$DIR/commands/ai-digest.md" && pass "command: --setup advertised" || err "command: --setup missing"
 echo
 [ "$fail" -eq 0 ] && { echo "ALL CONTRACT CHECKS PASSED"; exit 0; } || { echo "CONTRACT CHECKS FAILED"; exit 1; }
