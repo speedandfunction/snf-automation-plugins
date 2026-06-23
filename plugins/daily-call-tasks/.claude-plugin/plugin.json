@@ -1,7 +1,9 @@
 {
   "name": "daily-call-tasks",
-  "version": "1.0.0",
-  "description": "Builds a cited digest of the action items from the calls you personally attended (default: yesterday). Reads Google Calendar + the notes-bot Meeting Resources, spawns sonnet sub-agents per call to extract your action items with verbatim citations. Read-only, unattended-safe; designed to run as a morning cloud routine.",
+  "version": "1.1.0",
+  "description": "A 3-skill suite around the calls you attended: daily-call-tasks (read-only cited digest of YOUR action items from yesterday's attended calls, unattended-safe morning routine), daily-call-tasks-commit (interactive, human-confirmed creation of the chosen items as ClickUp tasks, self only), and morning-brief (interactive Geekbot-style standup prep — what you did / on your plate / blockers / open questions, then auto-post to Geekbot with correct Slack mentions).",
+  "command": "`/daily-call-tasks` · `/daily-call-tasks-commit` · `/morning-brief`",
+  "requirements": "**Google Calendar** + **Google Drive** connectors (sub-agents on **Sonnet**). `-commit` + `morning-brief` also need the **ClickUp MCP** + a one-time `/morning-brief --onboard` identity. `morning-brief` optionally uses a **Geekbot** API key, the **Gmail** connector, and a **team.md** roster (all degrade gracefully if absent).",
   "author": { "name": "Misha Skripkovsky", "url": "https://github.com/MishaSkripkovsky" },
   "homepage": "https://github.com/speedandfunction/snf-automation-plugins/tree/main/plugins/daily-call-tasks",
   "license": "MIT"

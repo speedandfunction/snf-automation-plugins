@@ -29,7 +29,7 @@
     },
     {
       "name": "daily-call-tasks",
-      "description": "Cited digest of the action items from the calls you personally attended (default: yesterday). Reads Google Calendar + notes-bot Meeting Notes, sonnet sub-agents per call extract YOUR action items with citations. Read-only, unattended-safe; built to run as a morning cloud routine. Requires Google Calendar + Drive connectors.",
+      "description": "A 3-skill suite around the calls you attended. daily-call-tasks: read-only, unattended-safe cited digest of YOUR action items from yesterday's attended calls (morning cloud routine). daily-call-tasks-commit: interactive, human-confirmed creation of the chosen items as ClickUp tasks (self only). morning-brief: interactive Geekbot-style standup prep — what you did / on your plate / blockers / open questions — that auto-posts to Geekbot with correct Slack mentions on confirmation. Requires Google Calendar + Drive; the latter two also need the ClickUp MCP + a one-time /morning-brief --onboard identity.",
       "author": {
         "name": "Misha Skripkovsky"
       },
