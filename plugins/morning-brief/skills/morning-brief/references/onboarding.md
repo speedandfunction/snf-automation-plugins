@@ -1,6 +1,6 @@
 # onboarding reference — morning-brief
 
-Self-contained identity onboarding for `~/.claude/shared/identity.json`. It writes the SAME cross-plugin schema `/clickup`, `/gevent`, `/find-call`, and `daily-call-tasks` read — so running it once here also satisfies the commit skill's identity gate. **It does NOT depend on `/clickup` being installed** (that plugin's `/clickup:onboard` is the old, dead pointer this replaces).
+Self-contained identity onboarding for `~/.claude/shared/identity.json`. It writes the SAME cross-plugin schema `/clickup`, `/gevent`, `/find-call`, and `daily-call-tasks` read — so running it once here also satisfies daily-call-tasks' identity gate. **It does NOT depend on `/clickup` being installed** (that plugin's `/clickup:onboard` is the old, dead pointer this replaces).
 
 > The file is a shared cross-plugin contract. We are a third writer of a file two other live plugins mutate — so the write MUST honor the schema gate (`schemaVersion: 2`), the `flock`, atomic replace, and unknown-key preservation, or the next `/clickup`/`/gevent` run quarantines it to `identity.json.corrupt-<epoch>`.
 
@@ -34,7 +34,7 @@ Minimal valid file (self-record uses the same email as `user.email`):
      Google:     <primary calendar id (= authed email), or "not authed">
    Is this you?  [Yes, continue / Pick different ClickUp record / Fix email]
    ```
-   Capture `user.external_ids.clickup`. Initialize top-level `trusted_domains` with the user's own `@domain`. Do NOT proceed without this confirm — it is exactly the "ambiguous identity" the commit gate refuses on.
+   Capture `user.external_ids.clickup`. Initialize top-level `trusted_domains` with the user's own `@domain`. Do NOT proceed without this confirm — it is exactly the "ambiguous identity" daily-call-tasks' write gate refuses on.
 4. **Discover teammates** (parallel, merge by email): `clickup_get_workspace_members` (source `clickup-workspace`), assignees on the user's open tasks (`clickup-tasks`), calendar attendees last 14 days (`google-calendar`). Tag each with its `sources` value; UNION on re-discovery. (Optional for v1 — a `[]` roster still passes the gate; the self-record is the one entry that matters for attribution.)
 5. **Alias confirm** for non-Latin `first_name` (read-back). Misha's name is Latin → `latin_alias = first_name`, no-op.
 6. **Write atomically** via the helper below.
@@ -115,4 +115,4 @@ print("identity.json written:", PATH)
 ```
 
 ## After writing
-Echo the confirmed `user.email` back. The commit skill's Step 0.2 also echoes `user.email` and asks the user to confirm before any write — the two read-backs are aligned (both pivot on `user.email`). If onboarding was interrupted, `onboarding_complete` stays `false`; the next run resumes.
+Echo the confirmed `user.email` back. daily-call-tasks' Step 0.2 also echoes `user.email` and asks the user to confirm before any write — the two read-backs are aligned (both pivot on `user.email`). If onboarding was interrupted, `onboarding_complete` stays `false`; the next run resumes.
