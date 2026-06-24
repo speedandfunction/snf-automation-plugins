@@ -14,4 +14,3 @@ It first runs the daily-call-tasks call-extraction (Sonnet sub-agents) as a sour
 6. **Post to Geekbot** (→ Slack) after a preview, with correct `<@SlackID>` mentions and each task's ClickUp ticket id.
 
 No flags: setup (identity + dependencies) is transparent on first run; a scheduled run auto-uses yesterday read-only, a manual run asks the period. Read-only except the ClickUp status changes you command and the confirmed Geekbot post; self only; fails closed on any unresolved @mention.
-</content>

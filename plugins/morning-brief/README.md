@@ -47,4 +47,3 @@ commands/          morning-brief.md
 - `references/onboarding.md` — the self-contained identity wizard + atomic/flock write helper.
 - `references/extraction.md` — morning-brief's own copy of the Sonnet call-extraction primitives.
 - `references/sections.md` — status-verb→status mapping + safe apply, snapshot-diff "what was done", plate dedup, block-reason derivation, the TeamMD resolver, the real-Geekbot-mood read, and the Geekbot payload.
-</content>

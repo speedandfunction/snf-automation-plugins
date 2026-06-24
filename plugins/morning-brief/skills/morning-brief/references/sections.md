@@ -114,4 +114,3 @@ API base `https://api.geekbot.com/v1` (trailing slashes matter). Auth header **`
    ```
    `answers` keys = question ids as STRINGS; ALL of the standup's questions must be present (empty-but-required → a short "—"). The mood question's answer = the chosen real option string (Step 5).
 4. **Confirm** via `AskUserQuestion` (Post / Skip). On Post → `POST /v1/reports/` with the header above. Handle `401` (bad/free-plan key) and `429` (back off) by reporting + keeping the paste-ready block; never retry-loop. Read-back optional via `GET /v1/reports/?standup_id=&user_id=`.
-</content>

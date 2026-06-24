@@ -48,7 +48,7 @@ This is **one command, no mode-flags** (no `--dry-run` / `--no-post` / separate 
 ## Step 1 — Resolve the window (and, in MANUAL mode, the filter)
 
 - **SCHEDULED:** window = the full **previous calendar day** in the resolved user TZ. No questions.
-- **MANUAL:** **ask the period** (e.g. "yesterday", "today", "last 3 days", a date, or a range) AND the **optional participants/team filter** — e.g. "only meetings with the automation team" or "only calls with Andy". If the user already stated a period/filter in their invocation, use it and don't re-ask.
+- **MANUAL:** **ask the period** (e.g. "yesterday", "today", "last 3 days", a date, or a range), the **optional participants/team filter** (which meetings — e.g. "only meetings with the automation team" or "only calls with Andy"), AND **whose action items to extract** — yours (default), everyone's on the call, or a specific person/team (Andy's "тільки таски моєї команди"). If the user already stated period/filter/scope in their invocation, use it and don't re-ask.
 - Convert the period to `[start, end]` **in the resolved user TZ, NOT the server clock**, and pass that IANA `timeZone` to the calendar query. Pad `timeMin`/`timeMax` by ±1 day for the UTC/local boundary, then re-narrow post-hoc to the true `[start,end]` in that TZ.
 
 ## Step 2 — List ATTENDED events in the window (+ apply the filter)

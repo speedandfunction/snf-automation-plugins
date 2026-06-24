@@ -134,5 +134,3 @@ Assemble the brief in this order — **What was done · On your plate · Blocker
 - **Slack-message ingestion** — not pulled; the user reads Slack anyway.
 
 See `references/onboarding.md` for the identity wizard + the atomic/flock write helper, `references/extraction.md` for the self-contained call-extraction primitives (Sonnet), and `references/sections.md` for the snapshot-diff, the status-verb→status mapping, the marker-first/Jaccard dedup, the TeamMD resolver, the real-Geekbot-mood read, and the Geekbot payload mapping.
-</content>
-</invoke>
