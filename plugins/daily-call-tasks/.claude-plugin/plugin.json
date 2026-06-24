@@ -1,9 +1,9 @@
 {
   "name": "daily-call-tasks",
-  "version": "1.1.0",
-  "description": "A 3-skill suite around the calls you attended: daily-call-tasks (read-only cited digest of YOUR action items from yesterday's attended calls, unattended-safe morning routine), daily-call-tasks-commit (interactive, human-confirmed creation of the chosen items as ClickUp tasks, self only), and morning-brief (interactive Geekbot-style standup prep — what you did / on your plate / blockers / open questions, then auto-post to Geekbot with correct Slack mentions).",
-  "command": "`/daily-call-tasks` · `/daily-call-tasks-commit` · `/morning-brief`",
-  "requirements": "**Google Calendar** + **Google Drive** connectors (sub-agents on **Sonnet**). `-commit` + `morning-brief` also need the **ClickUp MCP** + a one-time `/morning-brief --onboard` identity. `morning-brief` optionally uses a **Geekbot** API key, the **Gmail** connector, and a **team.md** roster (all degrade gracefully if absent).",
+  "version": "2.0.0",
+  "description": "One skill, one command for the calls you attended. Scheduled run → a read-only, cited TABLE of your action items for yesterday (one table per meeting: heading = name · date+time · participants; columns № | task name | priority | status | deadline | assignee | description; continuous numbering across all tables). Manual run → asks the period (+ optional participants/team filter), renders the same tables, then offers to push the chosen tasks to ClickUp's automation space with status/priority/deadline/assignee (team-assign allowed on explicit confirmation). Sonnet sub-agents per call; never invents an item.",
+  "command": "`/daily-call-tasks`",
+  "requirements": "**Google Calendar** + **Google Drive** connectors; per-call sub-agents on **Sonnet** (`CLAUDE_CODE_SUBAGENT_MODEL=claude-sonnet-4-6`). The manual ClickUp push also needs the **ClickUp MCP**; for non-self (team) assignees it resolves names via `~/Work/team.md` / `~/.claude/shared/identity.json` and `clickup_resolve_assignees`. A transcript notetaker (e.g. Sembly) is optional. Scheduling is per-user via `/schedule`.",
   "author": { "name": "Misha Skripkovsky", "url": "https://github.com/MishaSkripkovsky" },
   "homepage": "https://github.com/speedandfunction/snf-automation-plugins/tree/main/plugins/daily-call-tasks",
   "license": "MIT"

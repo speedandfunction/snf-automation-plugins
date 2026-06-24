@@ -1,8 +1,6 @@
-# Extraction reference — daily-call-tasks
+# Extraction reference — morning-brief (self-contained copy)
 
-Logic adapted (and trimmed) from Sasha Marchuk's read-only `find-call` skill. This skill targets a **whole-set digest rendered as tables** (scheduled = read-only; manual = tables + optional ClickUp push). It KEEPS the proven extraction primitives and DROPS find-call's interactive scoring/disambiguation.
-
-This one skill replaces the former two (`daily-call-tasks` read-only digest + `daily-call-tasks-commit` interactive write). Extraction is here; the create/dedup/idempotency rules are in `commit-rules.md` in this same `references/` folder.
+This is morning-brief's OWN copy of the call-extraction primitives — **no `../sibling` import** (the contract requires each plugin be self-contained). Logic adapted (and trimmed) from Sasha Marchuk's read-only `find-call` skill; it mirrors the `daily-call-tasks` redesign so the two plugins stay consistent. morning-brief runs this **inline** as its Step-1 source (the structured items feed the plate-dedup); it KEEPS the proven extraction primitives and DROPS everything interactive. **Sub-agents run on Sonnet** (`CLAUDE_CODE_SUBAGENT_MODEL=claude-sonnet-4-6`) — never opus/haiku (citation fidelity).
 
 ## Kept from find-call
 - Calendar-as-index discovery of the user's events.
@@ -39,23 +37,14 @@ Description is HTML — match links, do not parse as a tree. Strip query strings
 ## Meeting Notes sections
 Typical Markdown/Doc structure: `Topic:`, `Date:`, `Short Summary`, `Key Discussion Points`, `Action Points` (often per attendee), `Meeting Resources`. For action-item extraction the `Action Points` section keyed to `{user.name}` is the highest-signal source; quote it verbatim and cite the Doc URL + that section heading.
 
-## Scope: whose items (self vs team-pull)
-- **Default (scheduled, or a plain manual run):** extract items owned by `{user.name}`.
-- **Team-pull (manual only):** when the user asks "pull everyone's / my team's tasks from this call", the orchestrator passes `PARTICIPANTS=<names>` to the sub-agent, which then ALSO extracts items owned by those named people — each with its real owner in the **assignee** field. Being in the room ≠ owning the item: only emit an owner the source actually names; otherwise the owner is `{user.name}`. Never invent an owner.
-
-## Per-item fields (priority / deadline / assignee / description)
+## Per-item fields (priority / deadline / description)
 For EACH extracted action item, ALSO capture these **only if voiced** in the notes/transcript — leave a field blank otherwise, NEVER invent:
 - **priority** → a ClickUp value `urgent` / `high` / `normal` / `low`. Set only when urgency was actually conveyed ("ASAP/today/critical" → urgent/high; "when you can/low-pri/nice-to-have" → low). Blank if not voiced.
 - **deadline** → `YYYY-MM-DD`, only if a due date/timeframe was stated ("by Friday", "end of month", "before the 30th"). Resolve relative phrases against the **call date** (passed to the sub-agent as `<CALL_DATE>`), in the user TZ. Blank if none stated.
-- **assignee** → the stated owner's name if the source names one (e.g. an `Action Points → <name>` heading, or "<name> will…"); else `{user.name}`. Never invent an owner. Resolved to a ClickUp member at push time (see `commit-rules.md`).
+- **assignee** → the person the action is for, ONLY if explicitly stated (resolve via team.md / `clickup_resolve_assignees`); else the user. Blank-defaults-to-user, never a guessed teammate.
 - **description** → a short (≤1–2 line) context summary from the surrounding discussion, enough that the task stands alone — NOT a long history/Acceptance-Criteria dump. Cite the source line. Blank if there's no context beyond the action title.
 
-These become the Priority / Status / Deadline / Assignee / Description columns of THE TABLE (SKILL.md Step 5) + the To-Do/Backlog status heuristic. The status heuristic: a near-term deadline (this week) or urgent/high priority → `To-Do`; a far/blank deadline or low priority → `Backlog`. On conflict (e.g. near deadline but low priority, or urgent but far deadline), **any positive To-Do signal wins → `To-Do`**. The user can override every field at review (manual mode).
-
-## THE TABLE (SKILL.md Step 5) — layout this reference backs
-- **One table per meeting** (N meetings → N tables), heading above each = `<meeting name> · <date+time> · <participants>`.
-- Columns in order: `№ | task name | priority | status | deadline | assignee | description` (assignee BEFORE description — description can be long, kept last).
-- **Continuous numbering across ALL tables** in the run (table 2 starts where table 1 ended) so every task has a unique number the user can reference ("push 5, 6, 10").
+In morning-brief these items are NOT ticketed — they surface as the **"⟂ not yet in ClickUp"** plate suggestions (Step 4). The same fields map to the contract §1 table columns (`№ | task name | priority | status | deadline | assignee | description`) when the user later runs `daily-call-tasks`, which also owns the To-Do/Backlog status heuristic. The status heuristic (commit-side): a near-term deadline (this week) or urgent/high priority → `To-Do`; a far/blank deadline or low priority → `Backlog`. On conflict (e.g. near deadline but low priority, or urgent but far deadline), **any positive To-Do signal wins → `To-Do`**. The user can override every field at review.
 
 ## Provider fallback (Step 0)
 Per source, try the present provider first, fall back to the other; only fail a source if every provider fails.

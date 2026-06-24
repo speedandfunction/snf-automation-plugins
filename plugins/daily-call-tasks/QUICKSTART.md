@@ -1,4 +1,4 @@
-# Quickstart — daily-call-tasks suite (3 skills)
+# Quickstart — daily-call-tasks (one skill, one command)
 
 A primitive "how to launch it" — paste the block at the bottom into your team channel.
 
@@ -9,28 +9,47 @@ A primitive "how to launch it" — paste the block at the bottom into your team 
 /reload-plugins
 ```
 
-## Connect + onboard (once)
-1. Connect **Google Calendar**, **Google Drive**, and the **ClickUp** connector at `claude.ai/customize/connectors`.
-2. Run `/morning-brief --onboard` once — it creates your shared identity file (`~/.claude/shared/identity.json`). This also unblocks `/daily-call-tasks-commit`.
+## Connect (once)
+1. Connect **Google Calendar** + **Google Drive** at `claude.ai/customize/connectors`.
+2. For the ClickUp push, connect the **ClickUp** connector too.
+3. Make sure per-call sub-agents run on **Sonnet** (`CLAUDE_CODE_SUBAGENT_MODEL=claude-sonnet-4-6`).
 
-## The three skills
-| Command | What you get |
-|---|---|
-| `/daily-call-tasks` | A plain morning message: per attended call → your action items (with priority/deadline if voiced), cited. Read-only. Schedule it with `/schedule` to get it every morning. |
-| `/daily-call-tasks-commit` | Review those items as a **table** (#, task, priority, deadline, description, status), edit by exception (`drop 3`, `prio 4: high`, `status 4: backlog`, `go`), and create them as ClickUp tasks. Writes only on your `go`. |
-| `/morning-brief` | Your standup, prepared: what you did (status changes + "sent for review to whom") · what's on your plate (open tasks + not-yet-ticketed call items) · blockers · open questions + Mood. On confirmation, posts to **Geekbot**. Run `/morning-brief --no-post` first to preview. |
+## Use it
+```text
+/daily-call-tasks                          # manual: it asks the period (+ optional team filter)
+/daily-call-tasks last 3 days              # manual with the period passed inline
+/daily-call-tasks yesterday, automation team only
+```
 
-## Optional (degrade gracefully if absent)
-- `GEEKBOT_API_KEY` (env or `~/.claude/morning-brief/config.json`) → enables the Geekbot auto-post.
-- Gmail connector → adds the Emails section to the brief.
-- A `~/Work/team.md` roster → correct `@`-mentions in the standup.
+- **Scheduled** (via `/schedule`): pulls **yesterday** automatically, prints the tables read-only —
+  no questions, no writes. The routine's session is your morning digest.
+- **Manual**: it asks the period (+ optional participants/team filter), then renders **one table per
+  meeting** (`№ | task name | priority | status | deadline | assignee | description`, continuous
+  numbering across tables) and asks **"add to ClickUp / fix anything?"**.
+
+Edit by exception, then push:
+```text
+prio 2: high     status 3: backlog     assignee 6: Andriy     drop 7
+push to ClickUp
+```
+It shows a COMMIT PLAN, asks you to Confirm, then creates the chosen tasks in the **automation
+space** (status/priority/deadline/assignee set; team-assign allowed but always confirmed; re-runs
+don't duplicate).
+
+## Optional
+- A transcript notetaker (Sembly) — promoted automatically when a Meeting Notes doc 403s.
+- `~/Work/team.md` / `~/.claude/shared/identity.json` — used to resolve a team name to its members
+  (for the participants filter and team-assign).
 
 ---
 
 ## Ready-to-paste channel message
-> **🗓 Daily Call Tasks + Morning Brief — try it (5 min)**
-> A Claude Code plugin suite: a morning digest of *your* action items from yesterday's calls, a one-click "send these to ClickUp", and a Geekbot-style standup prep.
+> **🗓 Daily Call Tasks — try it (5 min)**
+> A Claude Code plugin: it turns *the calls you attended* into a cited table of action items — one
+> table per meeting (priority/status/deadline/assignee), and on a manual run pushes the ones you
+> pick straight to ClickUp.
 > 1. Paste into Claude: `/plugin marketplace add speedandfunction/snf-automation-plugins` then `/plugin install daily-call-tasks@snf-automation-plugins` then `/reload-plugins`
-> 2. Connect Google Calendar + Drive + ClickUp at claude.ai/customize/connectors, then run `/morning-brief --onboard` once.
-> 3. Use it: `/daily-call-tasks` · `/daily-call-tasks-commit` · `/morning-brief --no-post`
-> Marketplace: https://github.com/speedandfunction/snf-automation-plugins/tree/main/plugins/daily-call-tasks — questions → me.
+> 2. Connect Google Calendar + Drive (+ ClickUp for the push) at claude.ai/customize/connectors.
+> 3. Run `/daily-call-tasks` — it asks the period, shows the tables, and offers to push to ClickUp.
+> Schedule it with `/schedule` to get yesterday's tables every morning (read-only).
+> Marketplace: https://github.com/speedandfunction/snf-automation-plugins/tree/main/plugins/daily-call-tasks

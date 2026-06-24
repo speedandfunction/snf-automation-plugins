@@ -1,72 +1,82 @@
 # daily-call-tasks
 
-A **3-skill suite** around the calls you attended — turn yesterday's meetings into a cited
-digest, into ClickUp tasks, and into a ready-to-post standup. The three skills share the call
-extraction logic and the `~/.claude/shared/identity.json` contract.
+**One skill, one command** for the calls you attended. It reads your Google Calendar for the
+meetings you actually joined, pulls the notes-bot **Meeting Notes / transcript** for each, and uses
+**Sonnet** sub-agents to extract the action items with verbatim citations — then renders them as
+**one table per meeting** and (on a manual run) offers to push the chosen tasks to ClickUp.
 
-> Source repo: [`MishaSkripkovsky/daily-call-tasks`](https://github.com/MishaSkripkovsky/daily-call-tasks) · ClickUp 86ca8brqx (digest/commit) · 86cacn12x (morning-brief).
+> Source: ClickUp 86ca8brqx. v2.0 merges the former read-only `daily-call-tasks` digest and the
+> interactive `daily-call-tasks-commit` into a single command (Andy's 2026-06-24 redesign).
 
-| Skill | Command | Posture | What it does |
-|---|---|---|---|
-| `daily-call-tasks` | `/daily-call-tasks` | **read-only**, unattended-safe | Cited digest of YOUR action items from yesterday's attended calls. Built to run as a morning cloud routine via `/schedule`. |
-| `daily-call-tasks-commit` | `/daily-call-tasks-commit` | **interactive, writes ClickUp** | Review/edit the digest in chat, then create the chosen items as ClickUp tasks (or update a similar one). Self only; writes nothing until you confirm. |
-| `morning-brief` | `/morning-brief` | **interactive, posts to Geekbot** | Geekbot-style standup prep: what you did / on your plate / blockers / open questions → auto-post to Geekbot with correct Slack mentions. |
+## The table (used everywhere — scheduled and manual)
+**One table per meeting** (N meetings → N tables). Above each table, a heading
+`<meeting name> · <date + time> · <participants>`. Columns, in order:
+
+```
+<Meeting name> · 2026-06-24 14:00 · Andriy, Misha, Yulia
+| № | task name | priority | status | deadline | assignee | description |
+|---|-----------|----------|--------|----------|----------|-------------|
+| 1 | Ship the digest fix | high | To-Do | 2026-06-30 | Misha | from the standup discussion |
+| 2 | Draft the onboarding lesson |  | Backlog |  | Misha |  |
+
+<Another meeting> · 2026-06-24 16:30 · Andriy, Sasha
+| № | task name | priority | status | deadline | assignee | description |
+|---|-----------|----------|--------|----------|----------|-------------|
+| 3 | Review the marketplace PR | urgent | To-Do | 2026-06-25 | Andriy |  |
+```
+
+Numbering is **continuous across all tables** in the run (table 2 starts where table 1 ended), so
+you can say "push 1, 3" or "prio 2: high". Every cell is filled only when the call actually voiced
+it — blank, never invented. Each row keeps its verbatim citation (used as the created task's
+description).
+
+## Two ways it runs (auto-detected — no mode flags)
+- **Scheduled / unattended** (no human / no TTY) → window = **yesterday**, renders the tables
+  **read-only**. Never asks, never writes. Run it as a daily cloud routine with `/schedule`; the
+  routine's session is what you read each morning.
+- **Manual / interactive** (a human is present) → **asks the period** (+ optional
+  participants/team filter — e.g. "only meetings with the automation team"), renders the same
+  tables, then asks **"add to ClickUp / fix anything?"**.
+
+The run model is detected via a TTY probe; the ClickUp write also sits behind an `AskUserQuestion`
+gate, so a scheduled session physically can't reach it.
+
+## Edit + push (manual only)
+Reply with task numbers and edit-by-exception, then `push to ClickUp`:
+
+```
+edit 4: <new title>     desc 4: <text>
+prio 5: high            due 4: 2026-06-30   (or  due 4: none)
+status 3: backlog       assignee 6: <name>
+drop 7                  add 7               list 4: <list>
+push to ClickUp         cancel
+```
+
+On `push to ClickUp` it shows a COMMIT PLAN and asks to Confirm, then creates the chosen tasks in
+the **automation space** with status / priority / deadline / assignee set. **Team-assign is
+allowed** (assign to a teammate) but gated: a non-self assignee is resolved to one workspace member
+and shown in the plan first — it never silently mis-assigns. Re-runs don't duplicate (a hidden
+idempotency marker; already-committed rows are skipped).
 
 ## Requirements
-- **All three:** Google **Calendar** + **Drive** connectors. Run per-call sub-agents on **Sonnet**.
-- **`-commit` + `morning-brief`:** the **ClickUp MCP**, and a one-time identity (`/morning-brief --onboard` — a self-contained wizard that writes `~/.claude/shared/identity.json`; no other plugin required).
-- **`morning-brief` optional (degrade gracefully if absent):** a **Geekbot** API key (`GEEKBOT_API_KEY`) for auto-post, the **Gmail** connector for the Emails section, and a `~/Work/team.md` roster for `<@SlackID>` mentions.
+- **Google Calendar + Google Drive** connectors (at `claude.ai/customize/connectors`).
+- Per-call sub-agents on **Sonnet** — pin `CLAUDE_CODE_SUBAGENT_MODEL=claude-sonnet-4-6`.
+- **ClickUp MCP** — only needed for the manual push. For team (non-self) assignees, name resolution
+  uses `~/Work/team.md` / `~/.claude/shared/identity.json` + `clickup_resolve_assignees`.
+- A transcript notetaker (e.g. Sembly) is **optional** — the skill runs notes-only without it, and
+  promotes the transcript when a Meeting Notes doc 403s.
 
-## The morning digest (`/daily-call-tasks`)
-Reads your Calendar for attended events, pulls the notes-bot **Meeting Resources → Meeting Notes**
-(and any transcript), and uses Sonnet sub-agents to extract *your* action items with verbatim
-citations. **Read-only and unattended-safe:** it never asks questions, never invents an item, and
-never writes to Calendar/Drive/ClickUp/Slack. The printed digest *is* the delivery — run it as a
-daily routine (`/schedule`) and read the result in the Claude app each morning.
-
-```text
-/daily-call-tasks --since=yesterday              # print the digest
-/daily-call-tasks --since=yesterday --dry-run    # same (already read-only)
-```
-
-## Send the digest to ClickUp (`/daily-call-tasks-commit`)
-The interactive write step. Review the grouped list, edit by exception, pick a destination list,
-and on confirmation each item is CREATEd (or a similar existing task is UPDATEd after a
-before→after diff). **Writes only on your explicit confirmation**, self only (others' items are
-flagged `UNATTRIBUTED`, never auto-committed), updates touch name/description only, and re-runs
-don't duplicate (hidden idempotency marker). Refuses to run unattended.
-
-```text
-/daily-call-tasks-commit --since=yesterday --dry-run    # preview the create/update plan
-/daily-call-tasks-commit --since=yesterday              # review/edit → confirm → writes
-```
-
-## Standup prep (`/morning-brief`)
-One interactive command assembles five sections — **Done** (attended meetings + ClickUp status
-changes, with "sent for review *to whom*" resolved from the task's assigned comments), **On your
-plate** (open tasks + not-yet-ticketed call items), **Blockers**, **Open questions** (@-mentioned
-via a `team.md` roster), and optionally **Emails** — then, on confirmation, posts to Geekbot.
-Read-only against ClickUp/Calendar/Drive; the only writes are the self-onboarded identity file and
-the **confirmed** Geekbot post. Fails closed on any unresolved `@mention`.
-
-```text
-/morning-brief --onboard     # one-time identity wizard (writes ~/.claude/shared/identity.json)
-/morning-brief --status      # show which dependencies are connected / degraded
-/morning-brief --no-post     # compose + print the brief, never post to Geekbot
-/morning-brief               # full run → confirm → post
-```
-> First release: the Geekbot auto-post path hasn't been exercised end-to-end — run with `--no-post` first to preview before relying on the live post.
-
-## Guarantees (per skill)
-- `daily-call-tasks` — **read-only**, zero writes to any service; Sonnet sub-agents; never invents an item; always emits a result.
-- `daily-call-tasks-commit` — writes to **ClickUp only on explicit confirmation**; self only; never closed/others' tasks; idempotent re-runs.
-- `morning-brief` — read-only except the self-onboarded identity file + the **confirmed** Geekbot post; self only; fails closed on unresolved mentions.
+## Guarantees
+- **Extraction is read-only** — zero writes to Calendar / Drive / transcripts / Slack / Gmail.
+- The **only** write is the ClickUp create, reachable only in a manual session and only after your
+  explicit "push to ClickUp" + Confirm.
+- **Never invents** an item, priority, deadline, assignee, or description — blank when unvoiced;
+  every row carries a citation.
+- **Scheduled runs never prompt and never write.** Idempotent re-runs (marker-first dedup).
 
 ## Layout
 ```
 skills/
-  daily-call-tasks/          SKILL.md  references/extraction.md
-  daily-call-tasks-commit/   SKILL.md  references/commit-rules.md
-  morning-brief/             SKILL.md  references/{onboarding,sections}.md
-commands/                    daily-call-tasks.md · daily-call-tasks-commit.md · morning-brief.md
+  daily-call-tasks/   SKILL.md  references/{extraction.md, commit-rules.md}
+commands/             daily-call-tasks.md
 ```

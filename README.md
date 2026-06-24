@@ -23,6 +23,7 @@ Install any subset:
 /plugin install mn-team-links@snf-automation-plugins
 /plugin install mn-team-onboard@snf-automation-plugins
 /plugin install daily-call-tasks@snf-automation-plugins
+/plugin install morning-brief@snf-automation-plugins
 /plugin install ai-digest@snf-automation-plugins
 ```
 <!-- END:AUTOGEN install -->
@@ -37,7 +38,8 @@ Install any subset:
 |---|---|---|---|
 | **[mn-team-links](https://github.com/speedandfunction/snf-automation-plugins/tree/main/plugins/mn-team-links)** | `/mn-team-links [team]` | Resolve an MN Service team to its Google Drive transcript/notes folder link, read live from the n8n MN Service config via the connected n8n MCP. | **n8n MCP** connected. (No secret needed for normal use.) |
 | **[mn-team-onboard](https://github.com/speedandfunction/snf-automation-plugins/tree/main/plugins/mn-team-onboard)** | `/mn-team-onboard <tag> <parentUrl> [slack]` | Onboard a new team to the MN Service pipeline from a team tag + parent Drive folder link: creates Drive subfolders via a token-protected n8n webhook and adds one teamsRaw routing entry (Stage then Prod), self-validated with rollback. | **n8n MCP** + **Google Drive** connector + webhook token in `plugins/mn-team-onboard/.env` (see `config/.env.example`). |
-| **[daily-call-tasks](https://github.com/speedandfunction/snf-automation-plugins/tree/main/plugins/daily-call-tasks)** | `/daily-call-tasks` · `/daily-call-tasks-commit` · `/morning-brief` | A 3-skill suite around the calls you attended. | **Google Calendar** + **Google Drive** connectors (sub-agents on **Sonnet**). `-commit` + `morning-brief` also need the **ClickUp MCP** + a one-time `/morning-brief --onboard` identity. `morning-brief` optionally uses a **Geekbot** API key, the **Gmail** connector, and a **team.md** roster (all degrade gracefully if absent). |
+| **[daily-call-tasks](https://github.com/speedandfunction/snf-automation-plugins/tree/main/plugins/daily-call-tasks)** | `/daily-call-tasks` | One skill, one command for the calls you attended. | **Google Calendar** + **Google Drive** connectors; per-call sub-agents on **Sonnet** (`CLAUDE_CODE_SUBAGENT_MODEL=claude-sonnet-4-6`). The manual ClickUp push also needs the **ClickUp MCP**; for non-self (team) assignees it resolves names via `~/Work/team.md` / `~/.claude/shared/identity.json` and `clickup_resolve_assignees`. A transcript notetaker (e.g. Sembly) is optional. Scheduling is per-user via `/schedule`. |
+| **[morning-brief](https://github.com/speedandfunction/snf-automation-plugins/tree/main/plugins/morning-brief)** | `/morning-brief` | Interactive Geekbot-style standup prep — one command, no flags. | **Google Calendar** + **Google Drive** + **ClickUp** connectors; sub-agents on **Sonnet**. Optional: a **Geekbot** API key (auto-post), the **Gmail** connector (emails), a **team.md** roster (Slack mentions). One-time identity is created transparently on first run. |
 | **[ai-digest](https://github.com/speedandfunction/snf-automation-plugins/tree/main/plugins/ai-digest)** | `/ai-digest` | Drafts the automation department's weekly cross-department digest (top-3 Closed-this-week / In-progress / Priorities) from the team's own meeting-notes (primary narrative) + ClickUp (the dated 'what closed' signal). | **ClickUp MCP** + a **Google Drive** connector. Optional **Geekbot** key enables the enrich-only 3rd source. |
 <!-- END:AUTOGEN plugins -->
 

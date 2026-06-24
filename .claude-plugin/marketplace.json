@@ -29,13 +29,23 @@
     },
     {
       "name": "daily-call-tasks",
-      "description": "A 3-skill suite around the calls you attended. daily-call-tasks: read-only, unattended-safe cited digest of YOUR action items from yesterday's attended calls (morning cloud routine). daily-call-tasks-commit: interactive, human-confirmed creation of the chosen items as ClickUp tasks (self only). morning-brief: interactive Geekbot-style standup prep — what you did / on your plate / blockers / open questions — that auto-posts to Geekbot with correct Slack mentions on confirmation. Requires Google Calendar + Drive; the latter two also need the ClickUp MCP + a one-time /morning-brief --onboard identity.",
+      "description": "One skill, one command for the calls you attended. A scheduled run prints a read-only, cited TABLE of your action items for yesterday (one table per meeting — heading name·date·participants; columns № | task | priority | status | deadline | assignee | description; continuous numbering across all tables). A manual run asks the period (+ optional participants/team), renders the same tables, and on your confirmation pushes the chosen tasks to ClickUp's automation space with status/priority/deadline/assignee (team-assign allowed). Sonnet sub-agents per call; never invents an item. Requires Google Calendar + Drive (+ ClickUp MCP for the push).",
       "author": {
         "name": "Misha Skripkovsky"
       },
       "source": "./plugins/daily-call-tasks",
       "category": "productivity",
       "homepage": "https://github.com/speedandfunction/snf-automation-plugins/tree/main/plugins/daily-call-tasks"
+    },
+    {
+      "name": "morning-brief",
+      "description": "Interactive Geekbot-style standup prep — one command, no flags. Runs the daily-call-tasks call extraction (Sonnet) as a source, then walks you through a status-management step that lists ALL your tasks by status and applies the ClickUp status changes you command, then what-was-done, on-your-plate (you pick what to report), blockers with their reason, your open questions, and a Mood picked from your standup's real Geekbot options — and posts the standup to Geekbot (→ Slack) with correct mentions and each task's ClickUp ticket id. Setup is transparent on first run. Read-only except the status changes you command + the confirmed Geekbot post. Requires Google Calendar + Drive + ClickUp; optional Geekbot key / Gmail / team.md.",
+      "author": {
+        "name": "Misha Skripkovsky"
+      },
+      "source": "./plugins/morning-brief",
+      "category": "productivity",
+      "homepage": "https://github.com/speedandfunction/snf-automation-plugins/tree/main/plugins/morning-brief"
     },
     {
       "name": "ai-digest",

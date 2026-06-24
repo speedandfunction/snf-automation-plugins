@@ -1,17 +1,17 @@
 # onboarding reference — morning-brief
 
-Self-contained identity onboarding for `~/.claude/shared/identity.json`. It writes the SAME cross-plugin schema `/clickup`, `/gevent`, `/find-call`, and `daily-call-tasks-commit` read — so running it once here also satisfies the commit skill's identity gate. **It does NOT depend on `/clickup` being installed** (that plugin's `/clickup:onboard` is the old, dead pointer this replaces).
+Self-contained identity onboarding for `~/.claude/shared/identity.json`. It writes the SAME cross-plugin schema `/clickup`, `/gevent`, `/find-call`, and `daily-call-tasks` read — so running it once here also satisfies the commit skill's identity gate. **It does NOT depend on `/clickup` being installed** (that plugin's `/clickup:onboard` is the old, dead pointer this replaces).
 
 > The file is a shared cross-plugin contract. We are a third writer of a file two other live plugins mutate — so the write MUST honor the schema gate (`schemaVersion: 2`), the `flock`, atomic replace, and unknown-key preservation, or the next `/clickup`/`/gevent` run quarantines it to `identity.json.corrupt-<epoch>`.
 
 ## When this runs
-Step 0 of `SKILL.md` calls this when `identity.json` is absent, `onboarding_complete != true`, or the running identity is ambiguous. `/morning-brief --onboard` runs ONLY this and stops. It is interactive (read-back confirm); never run it headless.
+Step 0 of `SKILL.md` calls this when `identity.json` is absent, `onboarding_complete != true`, or the running identity is ambiguous. There is **no `--onboard` mode** — onboarding is **transparent**: it runs inline on first use (or when identity is ambiguous), then the brief continues. It is interactive (read-back confirm), so it only runs in manual/human mode; in scheduled/headless mode an absent identity → skip the write surfaces and degrade, never block.
 
 ## Canonical schema (what we WRITE)
 Top level: `schemaVersion` (bare integer `2` — missing/string/float ⇒ instant quarantine), `schemaVersion_bumped_at`, `schemaVersionHistory[]`, `onboarding_complete: true`, `updated_at` (ISO8601 UTC), `trusted_domains[]` (TOP LEVEL, not under `user`), `user{}`, `teammates[]`.
 - `user{}` = EXACTLY `name`, `email`, `external_ids{}` (reserved keys clickup/google/slack/jira; `{}` if none). **No `latin_alias` on `user{}`** — it lives only on `teammates[]`.
 - `teammates[]` entry = `first_name`, `latin_alias` (ASCII, required, the resolver key), `full_name`, `email` (upsert key), `external_ids{}`, `active` (bool), `sources[]`, `last_validated_at`.
-- **Self-record:** upsert a `teammates[]` entry for the user themself (same email as `user.email`, `latin_alias` = their Latin first name) so `daily-call-tasks-commit`'s `Action Points → {latin_alias}` attribution resolves. The gate passes without it (on `user.name`+`user.email` presence); the self-record only improves attribution recall.
+- **Self-record:** upsert a `teammates[]` entry for the user themself (same email as `user.email`, `latin_alias` = their Latin first name) so `daily-call-tasks`'s `Action Points → {latin_alias}` attribution resolves. The gate passes without it (on `user.name`+`user.email` presence); the self-record only improves attribution recall.
 
 Minimal valid file (self-record uses the same email as `user.email`):
 ```json
@@ -23,7 +23,7 @@ Minimal valid file (self-record uses the same email as `user.email`):
 ```
 
 ## Wizard steps (mirror the plugin `onboard-identity` so output is byte-compatible)
-1. **State check.** Exists + `onboarding_complete` + explicit re-run → proceed with a "refreshing roster; existing teammates preserved" warning. Exists but incomplete → resume. Absent → fresh.
+1. **State check.** Exists + `onboarding_complete` + ambiguous-identity re-trigger → proceed with a "refreshing roster; existing teammates preserved" warning. Exists but incomplete → resume. Absent → fresh.
 2. **Ask identity** (`AskUserQuestion`, one round): full name + work email. Seed in-memory skeleton `{schemaVersion:2, user:{name,email,external_ids:{}}, trusted_domains:["<email-domain>"], teammates:[], onboarding_complete:false, updated_at:<now>}`.
 3. **Cross-source read-back confirm (DO NOT skip).** Probe + echo, then one confirm:
    ```
