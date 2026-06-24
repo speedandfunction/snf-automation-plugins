@@ -52,7 +52,7 @@ Draft the automation department's **weekly cross-department digest**: three shor
 - **Providers (detect from the session tool list; prefer-then-fallback — get the data):**
   - ClickUp: the connected ClickUp MCP (`mcp__clickup__clickup_filter_tasks`, `clickup_get_task`, `clickup_get_workspace_hierarchy`).
   - Notes: a Google Drive MCP/connector (`mcp__*Google_Drive*__*`) to list + read the notes folder's Docs.
-  - Geekbot: the REST API via `curl` (Bash), key sourced **inside the same Bash call** from `~/.geekbot/env` — never exported, never in argv (see `references/geekbot-playbook.md`).
+  - Geekbot: the REST API via `curl` (Bash), key read **as data** (`grep '^GEEKBOT_API_KEY=' ~/.geekbot/env | cut -d= -f2-`) inside the same Bash call — **never `source`d** (a value with `$()`/backtick would execute → RCE), never exported, never in argv (see `references/geekbot-playbook.md`).
   - If a custom source in the config needs a credential (an env var / file), load it silently and **never print, echo, or log the secret value**.
 
 ## Step 1 — PREFLIGHT (probe each source, do not gather yet)
@@ -60,7 +60,7 @@ Draft the automation department's **weekly cross-department digest**: three shor
 Probe each source with the smallest possible read and print a table `[OK | BROKEN | OFF] <source> — <note>`:
 - **ClickUp** — one `clickup_get_workspace_hierarchy` on the space (confirms reach + lists/statuses). On auth-fail, surface the re-auth hint and STOP that source (don't silently proceed).
 - **Notes** — reachability is NOT enough; you MUST confirm there is **parseable content for the target week**. List the notes folder (403 trap = the running account isn't shared into the notes-bot folder → say so), then open the rolling Meeting-Notes Doc and confirm **≥1 `### *Date:*` section falls inside the week window**. Try BOTH header spellings `### *Date:*` and `### Date:` (the header drifted once before) and warn if only the non-asterisk form matches. If the folder is reachable but **no in-week date-section parses**, mark Notes **DEGRADED** (not OK) — do not silently treat it as present.
-- **Geekbot** — if no `~/.geekbot/env` key or no pinned `standup_id` → `[OFF] Geekbot — not configured (run /ai-digest --setup to enable it locally)` and skip it entirely (this is the normal state today). If configured: one `source ~/.geekbot/env && curl … /v1/standups/` (key via the leak-proof form in `references/geekbot-playbook.md`) to confirm the key authenticates (HTTP 200) and the pinned standup resolves. On 401/empty/error → `[OFF]`/`[BROKEN]` and proceed on notes+ClickUp; never HALT, never silently treat OFF as present.
+- **Geekbot** — if no `~/.geekbot/env` file, an **empty** `GEEKBOT_API_KEY` value, or no pinned `standup_id` → `[OFF] Geekbot — not configured (run /ai-digest --setup to enable it locally)` and skip it entirely (this is the normal, silent state today). If a key IS present: read it **as data** (`grep '^GEEKBOT_API_KEY=' ~/.geekbot/env | cut -d= -f2-` — **never `source`**, see `references/geekbot-playbook.md`) and run one leak-proof `curl … /v1/standups/` to confirm it authenticates (HTTP 200) and the pinned standup resolves. **OFF vs BROKEN (loud-fail):** a *configured* key that returns 401/empty/error is **BROKEN, not OFF** — print `[BROKEN] ⚠ Geekbot configured but auth failed (HTTP <code>)` and carry that warning into the digest **footer** ("ran WITHOUT Geekbot — rotate the key in ~/.geekbot/env"); never silently downgrade a BROKEN key to OFF (that hides a dead-key source drop). Either way proceed on notes+ClickUp; never HALT.
 
 Geekbot being OFF is normal and never blocks. If **both ClickUp and Notes** are BROKEN, print the preflight table and stop with a one-line reason — never emit a confident-but-empty digest. If Notes is BROKEN/DEGRADED but ClickUp is OK, proceed **ClickUp-only** and the coverage footer MUST say so explicitly ("notes unavailable this week — ClickUp-only; this digest is a task list, not the full narrative") — this is the guard against silently shipping a closed-ticket worklog that reads as "the team did little".
 
@@ -74,7 +74,7 @@ First, the orchestrator (you) reads `references/clickup-playbook.md` and `refere
 
 - **ClickUp sub-agent** — paste these rules into its prompt (no file path): one `clickup_filter_tasks` call per pool over the whole space `90156104627` with `subtasks=true` (paginate via `page` only until a page returns 0; if a page ERRORS, stop and surface it — an error is not "0 tasks"; backstop at 20 pages). **The `filter_tasks` response already contains `date_closed`, `status`, `assignees`, `list`, `url` for every task — do NOT call `get_task` across the open pools** (that turns ~60 tasks into hundreds of calls — the original hang). The ONLY allowed `get_task` is a per-row carve-out on the **Closed pool** (a handful of tasks) to fetch `date_created`/`date_updated` for the reopen-drift check; skip it and drop that check rather than guessing. Then in-prompt: **post-filter `date_closed != null` and inside the UTC week** (the `review` status is done-type with a null `date_closed` and leaks into a date-window query); roll up closed child subtasks to their parent and **de-dup** (never a closed child + its open parent as two; suppress `^Step \d+` recurring leaves). Produce three raw pools: **Closed** (date_closed in week), **In-progress** (open + moved this week, status in the active set, minus the deny-list), **Priorities** (open + priority/due). Tag each task with its initiative prefix (`[AUT]/[MNB]/[MAR]/[CLT]/[HR]/[TDE]/Q2`), assignee, list, and URL. Target ≤ ~6 tool calls total.
 - **Notes sub-agent** — read the **full body** of the AUT notes folder's rolling Meeting-Notes Doc(s) (NOT the Drive content-snippet — it strips the load-bearing `*` in `### *Date:*`). These rolling Docs can be very large (300k+ chars); the sub-agent slices to the week's `### *Date:*` sections and **returns only those sections' extracted items — never the full doc body** (so a big Doc can't blow the main context). Extract, with Doc-URL + section citations: decisions, outcomes, owners, **next-steps / action points**, and **non-ticketed work** (research, firefighting, anything discussed that may never become a ticket — this is what keeps the digest a narrative, not a ticket dump).
-- **Geekbot sub-agent (ONLY if Geekbot preflighted OK)** — paste the `references/geekbot-playbook.md` rules inline (no file path). In short: `source ~/.geekbot/env && curl` (key via stdin `-K -`, **never argv**, no `set -x`) ≤3 bounded calls to `/v1/standups/` + `/v1/reports/?standup_id=<pinned>&after=&before=&limit=100` (UNIX-seconds window, omit `user_id` = all members, no per-person loop, error ≠ empty); post-filter by `timestamp` to the UTC week; bucket each answer by the **pinned question→bucket map** (PAST/FUTURE/BLOCKER/EXCLUDE — never re-infer tense). Compute `coverage = reporters/roster`; if `< 0.6` → editor-file only + a loud footer. RETURN aggregate only: (a) per-initiative **enrichment hits** (a Geekbot answer whose initiative-prefix also appears in this week's notes/ClickUp → "corroborates: <outcome>" + date, to thicken that line), and (b) a **"From standups (unverified)"** list of blockers / forward intent / off-ticket items with NO notes/ClickUp line, plain-language, **no names**, `(per Geekbot, <date>)` + reporter count. Raw per-person answers go to the editor file only. Never originate a "Closed" item.
+- **Geekbot sub-agent (ONLY if Geekbot preflighted OK)** — paste the `references/geekbot-playbook.md` rules inline (no file path). In short: read the key as data (`grep '^GEEKBOT_API_KEY=' ~/.geekbot/env | cut -d= -f2-` — **never `source`**) then `curl` with the key via stdin `-K -` (**never argv**, no `set -x`); ≤3 bounded calls to `/v1/standups/` + `/v1/reports/?standup_id=<pinned>&after=&before=&limit=100` (UNIX-seconds window, omit `user_id` = all members, no per-person loop, error ≠ empty); post-filter by `timestamp` to the UTC week; bucket each answer by the **pinned question→bucket map** (PAST/FUTURE/BLOCKER/EXCLUDE — never re-infer tense). Compute `coverage = reporters/roster`; if `< 0.6` → editor-file only + a loud footer. RETURN aggregate only: (a) per-initiative **enrichment hits** (a Geekbot answer whose initiative-prefix also appears in this week's notes/ClickUp → "corroborates: <outcome>" + date, to thicken that line), and (b) a **"From standups (unverified)"** list of blockers / forward intent / off-ticket items with NO notes/ClickUp line, plain-language, **no names**, `(per Geekbot, <date>)` + reporter count. Raw per-person answers go to the editor file only. Never originate a "Closed" item.
 
 ## Step 4 — SYNTHESIZE (build the three buckets, notes-led)
 
@@ -120,30 +120,40 @@ End with one line: this is a **draft** — rewrite for voice/outcome, then publi
 
 Triggered by `--setup` / `--onboard`. This is the ONLY interactive mode — it asks questions and writes ONE local file. Everything stays on the user's machine; **nothing here is ever committed to the repo or printed back**.
 
-**Frame it for the user up front:** "I'll help you turn on Geekbot for the digest. Your API key stays in a local file in your home folder (`~/.geekbot/env`) — it is never put in the repo, never printed, never sent anywhere. I only read it by name at run time."
+**Frame it for the user up front:** "I'll help you turn on Geekbot for the digest. I'll create a small file in your home folder (`~/.geekbot/env`) and you paste your API key **into that file** — never here in the chat (pasting a secret to me would expose it). The key stays local: never put in the repo, never printed, never sent anywhere. I only read it by name at run time."
 
 Walk these steps, pausing for the human (use AskUserQuestion where a choice is needed):
 
 1. **Tier / key — free if you can.** Ask how many people ACTIVELY answer the AUT standup. If **> 10** → the workspace is already on Basic (Starter caps at 10) → the API key is **free**; generate it at `https://app.geekbot.com/dashboard/api-webhooks`. If **≤ 10** → either upgrade to Basic (~$3/user-mo) OR **borrow a key from someone already on a Basic workspace** (Sashko has one; Andy owns/admins the standup). The key must belong to a **participant of the shared AUT standup** (so it can read everyone — see step 4).
 
-2. **Store the key locally (never in the repo).** Tell the user to run, in their own terminal (do NOT type the key into chat):
+2. **Create the key file FOR them — they paste the key INTO the file, never into this chat.** The whole point: the key must NEVER pass through the chat (pasting a secret to the model = exposing it). So the skill makes a place and the human fills it. First *you* (the skill) create an empty, locked-down key file — this command carries **no secret**, so it's safe for the skill to run:
    ```bash
-   mkdir -p ~/.geekbot && umask 177
-   printf 'GEEKBOT_API_KEY=%s\n' 'PASTE_YOUR_KEY_HERE' > ~/.geekbot/env
-   chmod 600 ~/.geekbot/env
+   mkdir -p ~/.geekbot && ( umask 177; printf 'GEEKBOT_API_KEY=\n' > ~/.geekbot/env ) && chmod 600 ~/.geekbot/env \
+   && echo "Created ~/.geekbot/env (chmod 600) — open it and paste your key after the = sign."
    ```
-   Confirm `~/.geekbot/env` exists and is `chmod 600`. This file lives in `$HOME`, outside any git repo; never add it anywhere tracked. (If they keep secrets elsewhere, accept any path and record it in config — but default to `~/.geekbot/env`.)
-
-3. **Resolve the standup id + roster** (reads, never writes Geekbot). Run the leak-proof form:
+   Then tell the human, in plain words: **"Open the file `~/.geekbot/env` in any editor, paste your Geekbot key right after `GEEKBOT_API_KEY=` (no spaces, no quotes), save it, and tell me 'done'. Do NOT paste the key here in the chat."** Offer an open command for their OS but let them open it however they like: `open -e ~/.geekbot/env` (macOS) · `xdg-open ~/.geekbot/env` (Linux) · `notepad %USERPROFILE%\.geekbot\env` (Windows). **The skill NEVER asks for the key value and NEVER reads it back aloud.**
+   When they say "done", verify WITHOUT printing the key (length + file mode only):
    ```bash
-   source ~/.geekbot/env && printf 'header = "Authorization: %s"\n' "$GEEKBOT_API_KEY" | curl -sS -K - https://api.geekbot.com/v1/standups/ \
+   K=$(grep -m1 '^GEEKBOT_API_KEY=' ~/.geekbot/env | cut -d= -f2-); K=${K%$'\r'}; K="${K//[[:space:]]/}"; K=${K#\"}; K=${K%\"}
+   if [ -z "$K" ]; then echo "key still empty — open ~/.geekbot/env and paste it after the = sign, then say done";
+   elif [ "$K" = "PASTE_YOUR_KEY_HERE" ]; then echo "placeholder still there — replace it with the real key";
+   else echo "key present (${#K} chars); mode $(stat -f '%Lp' ~/.geekbot/env 2>/dev/null || stat -c '%a' ~/.geekbot/env)"; fi
+   ```
+   It prints only the length + permission bits, never the value. If empty/placeholder → loop back (re-ask them to paste + save). This file lives in `$HOME`, outside any git repo; never add it anywhere tracked. (If they keep secrets elsewhere, accept any path and record it in config — but default to `~/.geekbot/env`.)
+
+3. **Resolve the standup id + roster** (reads, never writes Geekbot). Read the key as **data** (never `source` — see RCE note in `references/geekbot-playbook.md`), then call the leak-proof form:
+   ```bash
+   GEEKBOT_API_KEY=$(grep -m1 '^GEEKBOT_API_KEY=' ~/.geekbot/env | cut -d= -f2-); GEEKBOT_API_KEY=${GEEKBOT_API_KEY%$'\r'}; GEEKBOT_API_KEY="${GEEKBOT_API_KEY//[[:space:]]/}"; GEEKBOT_API_KEY=${GEEKBOT_API_KEY#\"}; GEEKBOT_API_KEY=${GEEKBOT_API_KEY%\"}
+   printf 'header = "Authorization: %s"\n' "$GEEKBOT_API_KEY" | curl -sS -K - https://api.geekbot.com/v1/standups/ \
    | python3 -c "import sys,json;[print(s['id'],'|',s['name'],'|',[u['username'] for u in s.get('users',[])]) for s in json.load(sys.stdin)]"
    ```
    Show the list; have the user pick the AUT standup. Capture its `id` and the `users[]` roster (the team).
 
-4. **Coverage test — confirm ONE key reads ALL members.** Pull last week's reports WITHOUT `user_id` and list distinct reporters:
+4. **Coverage test — confirm ONE key reads ALL members.** Pull last week's reports WITHOUT `user_id` and list distinct reporters (key read as data again — same shell as the curl):
    ```bash
-   source ~/.geekbot/env && printf 'header = "Authorization: %s"\n' "$GEEKBOT_API_KEY" | curl -sS -K - "https://api.geekbot.com/v1/reports/?standup_id=<ID>&after=$(date -v-7d +%s)&limit=100" \
+   GEEKBOT_API_KEY=$(grep -m1 '^GEEKBOT_API_KEY=' ~/.geekbot/env | cut -d= -f2-); GEEKBOT_API_KEY=${GEEKBOT_API_KEY%$'\r'}; GEEKBOT_API_KEY="${GEEKBOT_API_KEY//[[:space:]]/}"; GEEKBOT_API_KEY=${GEEKBOT_API_KEY#\"}; GEEKBOT_API_KEY=${GEEKBOT_API_KEY%\"}
+   WK_AGO=$(date -u -d '7 days ago' +%s 2>/dev/null || date -u -v-7d +%s)   # GNU(Linux) || BSD(macOS)
+   printf 'header = "Authorization: %s"\n' "$GEEKBOT_API_KEY" | curl -sS -K - "https://api.geekbot.com/v1/reports/?standup_id=<ID>&after=$WK_AGO&limit=100" \
    | python3 -c "import sys,json;r=json.load(sys.stdin);print('reports',len(r));print('reporters',sorted({x['member']['username'] for x in r}))"
    ```
    PASS iff the reporters include people **other than the key owner**, covering the roster from step 3. If only the key owner appears → wrong key / per-person standups → go back to step 1 for a key that's a participant of the shared standup. (This is what makes "all reports of all members from one key" work.)
@@ -152,7 +162,7 @@ Walk these steps, pausing for the human (use AskUserQuestion where a choice is n
 
 6. **Write the local config** (`~/.claude/ai-digest/config.md`, the skill's own config — not the repo) with the pinned values:
    ```
-   Geekbot: standup_id <ID> ("<name>"); roster <usernames>; key GEEKBOT_API_KEY from ~/.geekbot/env (source it, never print).
+   Geekbot: standup_id <ID> ("<name>"); roster <usernames>; key GEEKBOT_API_KEY from ~/.geekbot/env (read as DATA via grep|cut, NEVER source, never print).
    Geekbot question map: "<q1>"=PAST | "<q2>"=FUTURE | "<q3>"=BLOCKER | "<mood q>"=EXCLUDE
    ```
    Show the user the file content before writing; write only on confirm.

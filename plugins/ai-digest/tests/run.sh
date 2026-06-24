@@ -60,7 +60,8 @@ else
 fi
 
 # Geekbot invariants
-grep -Eqi "source ~/.geekbot/env && curl|source .*env.*&&.*curl" "$GB" && pass "geekbot: env sourced INSIDE the curl call" || err "geekbot: key must be sourced inside the same call"
+grep -qi "cut -d= -f2-" "$GB" && grep -Eqi "never .*source|NEVER .source" "$GB" && pass "geekbot: key read as DATA (grep|cut), never sourced — RCE-safe" || err "geekbot: key must be read as data, NEVER sourced (RCE)"
+grep -Eqi "RCE|remote code execution|would execute|run on read" "$GB" && pass "geekbot: playbook documents the source-as-RCE hazard" || err "geekbot: must explain why source is an RCE"
 grep -Eqi "never in argv|-K -|stdin" "$GB" && pass "geekbot: secret via stdin not argv" || err "geekbot: key must not be in argv"
 grep -Eqi "never originate|never creates a .Closed" "$GB" && pass "geekbot: never originates a theme / Closed" || err "geekbot: must never originate"
 grep -qi "coverage < 0.6\|coverage.*0.6\|< 0.6" "$GB" && pass "geekbot: coverage floor 0.6" || err "geekbot: missing coverage floor"
@@ -71,7 +72,9 @@ grep -Eqi "From standups \(unverified\)" "$SKILL" && pass "skill: labelled From-
 # Geekbot onboarding + local-key safety
 grep -qi "Mode: --setup" "$SKILL" && pass "skill: interactive --setup onboarding mode" || err "skill: missing --setup onboarding mode"
 grep -Eqi "never put in the repo|never committed|stays in a local file|outside any git repo|outside this repo" "$SKILL" && pass "skill: setup frames key as LOCAL / never-in-repo" || err "skill: setup must state key never goes to the repo"
-grep -qi "never into chat\|own terminal\|do NOT type the key into chat\|do NOT type the key" "$SKILL" && pass "skill: user pastes key in own terminal, not chat" || err "skill: key must not be typed into chat"
+grep -Eqi "do NOT paste the key here|never .*into .*chat|paste .*into (that|the) file|paste your key .*into" "$SKILL" && pass "skill: user pastes key INTO the file, never into chat" || err "skill: key must go into the file, not the chat"
+grep -Eqi "Create the key file FOR them|create an empty.*key file|creates? .*~/.geekbot/env" "$SKILL" && pass "skill: setup CREATES the key file for the user (placeholder + chmod 600)" || err "skill: setup must create the key file for the user"
+grep -Eqi "BROKEN" "$SKILL" && grep -Eqi "auth failed|configured but|loud-fail|never silently downgrade" "$SKILL" && pass "skill: OFF vs BROKEN loud-fail (dead key warns, not silently dropped)" || err "skill: must distinguish OFF from BROKEN (loud-fail on dead key)"
 grep -qi "user_id" "$GB" && grep -Eqi "OMITTED|omit .user_id|all members|all participants" "$GB" && pass "geekbot: omit user_id => ALL team members in one call" || err "geekbot: must fetch all members"
 grep -qi "never committed\|LOCAL ONLY\|outside this repo\|outside .* repo" "$GB" && pass "geekbot-playbook: key is local-only / never committed" || err "geekbot-playbook: must state key is local-only"
 grep -q -- "--setup" "$DIR/commands/ai-digest.md" && pass "command: --setup advertised" || err "command: --setup missing"

