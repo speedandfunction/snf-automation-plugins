@@ -3,7 +3,7 @@ argument-hint: ""
 description: "Interactive standup prep, one command: status-management (apply ClickUp status changes you command) → what was done → on your plate → blockers with reasons → your open questions + a real Geekbot mood → post to Geekbot (Slack)."
 ---
 
-Invoke the `morning-brief` skill via the Skill tool.
+Invoke the `morning-brief:morning-brief` skill via the Skill tool.
 
 It first runs the daily-call-tasks call-extraction (Sonnet sub-agents) as a source, then reads your own ClickUp + Calendar (+ Gmail if connected) and walks you through ONE flow:
 1. **Status-management** — lists ALL your tasks grouped by status (Closed / In Progress / In Review / To-Do / Blocked) with continuous numbers; you command changes (e.g. `3→on hold, 4→done, 2→backlog`) and it APPLIES them in ClickUp after a preview.

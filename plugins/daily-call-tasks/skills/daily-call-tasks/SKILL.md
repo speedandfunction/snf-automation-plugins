@@ -1,7 +1,8 @@
 ---
 name: daily-call-tasks
 description: From the calls you attended in a window (scheduled run → yesterday auto; manual run → asks the period, plus an optional participants/team filter), reads your Google Calendar for attended events, pulls each event's notes-bot "Meeting Resources" Meeting Notes (and any transcript), and spawns a Sonnet sub-agent per call to extract action items with verbatim citations. Renders ONE table per meeting (heading = meeting name · date+time · participants; columns № | task name | priority | status | deadline | assignee | description; continuous numbering across all tables). On a manual run it then offers to push the chosen tasks to ClickUp (create in the automation space, with status/priority/deadline/assignee — team-assign allowed on explicit confirmation). Scheduled runs are read-only (tables only, no push). Never invents an item. Use for "what action items came up in my calls", a morning recap, turning call items into ClickUp tasks, or scheduling a daily digest.
-user-invocable: true
+disable-model-invocation: false
+user-invocable: false
 ---
 
 # /daily-call-tasks — call action items → tables → ClickUp (one skill, one command)
