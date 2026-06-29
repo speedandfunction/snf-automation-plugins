@@ -4,17 +4,17 @@
 # references, and that no secret is committed. Pure grep — makes no live API calls.
 set -u
 DIR="$(cd "$(dirname "$0")/.." && pwd)"
-SKILL="$DIR/skills/ai-digest/SKILL.md"
-CUP="$DIR/skills/ai-digest/references/clickup-playbook.md"
-OUT="$DIR/skills/ai-digest/references/output-style.md"
-GB="$DIR/skills/ai-digest/references/geekbot-playbook.md"
+SKILL="$DIR/SKILL.md"
+CUP="$DIR/references/clickup-playbook.md"
+OUT="$DIR/references/output-style.md"
+GB="$DIR/references/geekbot-playbook.md"
 PJ="$DIR/.claude-plugin/plugin.json"
 fail=0
 pass(){ echo "PASS: $1"; }
 err(){ echo "FAIL: $1"; fail=1; }
 
 # files exist
-for f in "$SKILL" "$CUP" "$OUT" "$GB" "$PJ" "$DIR/commands/ai-digest.md"; do
+for f in "$SKILL" "$CUP" "$OUT" "$GB" "$PJ"; do
   [ -f "$f" ] && pass "exists: ${f#$DIR/}" || err "missing: ${f#$DIR/}"
 done
 
@@ -77,7 +77,9 @@ grep -Eqi "Create the key file FOR them|create an empty.*key file|creates? .*~/.
 grep -Eqi "BROKEN" "$SKILL" && grep -Eqi "auth failed|configured but|loud-fail|never silently downgrade" "$SKILL" && pass "skill: OFF vs BROKEN loud-fail (dead key warns, not silently dropped)" || err "skill: must distinguish OFF from BROKEN (loud-fail on dead key)"
 grep -qi "user_id" "$GB" && grep -Eqi "OMITTED|omit .user_id|all members|all participants" "$GB" && pass "geekbot: omit user_id => ALL team members in one call" || err "geekbot: must fetch all members"
 grep -qi "never committed\|LOCAL ONLY\|outside this repo\|outside .* repo" "$GB" && pass "geekbot-playbook: key is local-only / never committed" || err "geekbot-playbook: must state key is local-only"
-grep -q -- "--setup" "$DIR/commands/ai-digest.md" && pass "command: --setup advertised" || err "command: --setup missing"
+grep -q -- "--setup" "$SKILL" && pass "skill: --setup advertised (flags table)" || err "skill: --setup missing"
+# root-SKILL layout: SKILL.md lives at the plugin root (bare /ai-digest), no skills/ subdir, no command wrapper
+test -f "$DIR/SKILL.md" && [ ! -d "$DIR/skills" ] && [ ! -d "$DIR/commands" ] && pass "layout: root-SKILL (bare /ai-digest, no skills/ or commands/)" || err "layout: must be root-SKILL (SKILL.md at plugin root, no skills/ or commands/)"
 
 # interactive first-run UX (Andy feedback): setup OFFER, period confirm, connector onboarding
 grep -q "Step 1b" "$SKILL" && grep -qi "AskUserQuestion" "$SKILL" && pass "skill: Step 1b first-run setup OFFER (interactive)" || err "skill: missing Step 1b interactive setup OFFER"
