@@ -12,7 +12,7 @@ On every row the person who closed the ticket, wrote the note, and spoke on the 
 ## Scope
 - **Always-on sources:** AUT meeting-notes (primary narrative) + ClickUp (dated signal), cited, print-only draft, top-3 per section, so-what translation + anti-worklog verb-lint.
 - **Interactive bare run:** with no flags the skill opens with a **source-status check** and **offers to walk you through connecting anything missing** (ClickUp / Drive / Geekbot), then **confirms the reporting week** (showing concrete dates) — before the ~10-20 min gather. Pass `--week=…` / `--yes` to skip the prompts (headless / scheduled runs). The editor/audit file is written to the **current working directory** (`./ai-digest-<week>.md`, where you ran it); override with `--out=<path>` (`--out=home` = the legacy `~/.claude/ai-digest/runs/…`).
-- **Geekbot (optional, enrich-only):** run **`/ai-digest --setup`** — an interactive flow that walks you through enabling Geekbot **locally**. Your API key stays in `~/.geekbot/env` (your home folder, `chmod 600`, **outside the repo — never committed, never printed**); the skill only references it by name at run time. One key reads **all team members' reports** from the shared standup in one call (`user_id` omitted). Once on, Geekbot **corroborates** existing notes/ClickUp lines (adds a `(per Geekbot)` citation) and feeds a labelled **"From standups (unverified)"** lane (blockers / forward intent / off-ticket work) — strengthening the otherwise-weak **Priorities** bucket. It **never originates a theme or a "Closed" item** (it's self-reported, the weakest evidence), and a sparse week (<60% reporters) goes editor-file only. **Without a key the digest runs identically on notes+ClickUp.** Mechanics + coverage test: `skills/ai-digest/references/geekbot-playbook.md`.
+- **Geekbot (optional, enrich-only):** run **`/ai-digest --setup`** — an interactive flow that walks you through enabling Geekbot **locally**. Your API key stays in `~/.geekbot/env` (your home folder, `chmod 600`, **outside the repo — never committed, never printed**); the skill only references it by name at run time. One key reads **all team members' reports** from the shared standup in one call (`user_id` omitted). Once on, Geekbot **corroborates** existing notes/ClickUp lines (adds a `(per Geekbot)` citation) and feeds a labelled **"From standups (unverified)"** lane (blockers / forward intent / off-ticket work) — strengthening the otherwise-weak **Priorities** bucket. It **never originates a theme or a "Closed" item** (it's self-reported, the weakest evidence), and a sparse week (<60% reporters) goes editor-file only. **Without a key the digest runs identically on notes+ClickUp.** Mechanics + coverage test: `references/geekbot-playbook.md`.
 - **v2:** a verified tier · fuzzy call↔task join · Slack/Doc delivery · deterministic ranking.
 
 ## Try it locally (dry-run)
@@ -39,12 +39,11 @@ Defaults target the S&F automation department: ClickUp space `90156104627`, note
 ```
 plugins/ai-digest/
   .claude-plugin/plugin.json
-  commands/ai-digest.md
-  skills/ai-digest/
-    SKILL.md                     # the brain: scope, gather, buckets, rank, emit
-    references/clickup-playbook.md  # whole-space scope, date_closed!=null, subtask roll-up, status buckets
-    references/output-style.md      # so-what template, verb-lint, no-verification rule
-  tests/run.sh                   # doc-contract test for the load-bearing invariants
+  SKILL.md                        # the brain (plugin root → bare /ai-digest): scope, gather, buckets, rank, emit
+  references/clickup-playbook.md   # whole-space scope, date_closed!=null, subtask roll-up, status buckets
+  references/output-style.md       # so-what template, verb-lint, no-verification rule
+  references/geekbot-playbook.md   # optional Geekbot enrich-only source mechanics + RCE-safe key read
+  tests/run.sh                    # doc-contract test for the load-bearing invariants
 ```
 
 ## Guarantees (enforced by the skill at runtime)

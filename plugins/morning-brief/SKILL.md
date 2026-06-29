@@ -2,7 +2,7 @@
 name: morning-brief
 description: Interactive Geekbot-style standup prep — ONE command. It first runs its OWN vendored call-extraction (Sonnet sub-agents; the same logic as daily-call-tasks, carried locally — it does NOT require that plugin) as a source, then reads your own ClickUp tasks + Calendar (+ Gmail if connected) and walks you through: a status-management step (lists ALL your tasks grouped by status with continuous numbers, takes commands like "3→on hold, 4→done", and APPLIES those status changes in ClickUp); what-was-done (attended calls + Closed tasks + the transitions just applied); on-your-plate today (you pick which to report — In Progress + To-Do, with In Review offered to add to the plan); blockers WITH the block reason (Blocked + On-Hold grouped); your own open questions (always asked, to whom); and a Mood picked from the REAL Geekbot mood options. Then it previews and posts to Geekbot (→ Slack) in your standup's question order (Mood first), with clickable ClickUp task links and posting ONLY the tasks you picked. Read-only except the ClickUp status changes YOU command + the confirmed Geekbot post; self only; fails closed on any unresolved @mention. Setup (identity + dependencies) is transparent on first run — no separate modes. Use when the user wants their morning standup prepared, "what did I do / reorder my backlog / what's on my plate", or to post their daily standup to Geekbot.
 disable-model-invocation: false
-user-invocable: false
+user-invocable: true
 ---
 
 # /morning-brief — interactive standup prep (one command)

@@ -59,12 +59,19 @@ scripts/gen-readme.mjs            # regenerates this README's plugin table from 
 .github/workflows/readme.yml      # CI: runs gen-readme on every push, auto-commits the result
 ```
 
-### Naming convention
-Keep the **skill folder name identical to the plugin name** (`plugins/morning-brief/skills/morning-brief/`).
-Claude Code then registers a clean **`/morning-brief`** slash command — backed by `commands/<name>.md`,
-the proven mechanism the working plugins use (`/clickup`, `/gevent`, `/ai-digest`). The doubled
-`morning-brief:morning-brief` you may see is only the **Skill-tool** display form, **not** the slash command —
-typing `/morning-brief` (or natural language) works. Keep the plugin name singular and equal to its command.
+### Naming convention — clean `/<plugin>` invocation (root-SKILL layout)
+To register a **bare `/<plugin>`** slash command (e.g. `/ai-digest`, NOT `/ai-digest:ai-digest`), put the
+skill's `SKILL.md` at the **plugin root** with `name: <plugin>` + `user-invocable: true`, its `references/`
+beside it, and **no `skills/<name>/` subdir and no `commands/<name>.md` wrapper**:
+```
+plugins/<plugin>/
+  .claude-plugin/plugin.json
+  SKILL.md            # name: <plugin>, user-invocable: true  → Claude Code registers /<plugin>
+  references/…
+```
+A skill under `skills/<name>/` is ALWAYS namespaced `/<plugin>:<name>`, and a plugin `commands/<name>.md`
+is ALWAYS `/<plugin>:<name>` too — both produce the doubled `ai-digest:ai-digest`. Only a **plugin-root
+`SKILL.md`** yields the clean bare `/<plugin>`. Keep the plugin name singular.
 
 Bundled scripts are addressed via `${CLAUDE_PLUGIN_ROOT}` so they resolve regardless of CWD.
 
