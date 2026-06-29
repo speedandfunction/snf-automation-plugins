@@ -39,7 +39,7 @@
     },
     {
       "name": "morning-brief",
-      "description": "Interactive Geekbot-style standup prep — one command, no flags. Runs the daily-call-tasks call extraction (Sonnet) as a source, then walks you through a status-management step that lists ALL your tasks by status and applies the ClickUp status changes you command, then what-was-done, on-your-plate (you pick what to report), blockers with their reason, your open questions, and a Mood picked from your standup's real Geekbot options — and posts the standup to Geekbot (→ Slack) with correct mentions and each task's ClickUp ticket id. Setup is transparent on first run. Read-only except the status changes you command + the confirmed Geekbot post. Requires Google Calendar + Drive + ClickUp; optional Geekbot key / Gmail / team.md.",
+      "description": "Interactive Geekbot-style standup prep — one command, no flags. Runs the daily-call-tasks call extraction (Sonnet) as a source, then walks you through a status-management step that lists ALL your tasks by status and applies the ClickUp status changes you command, then what-was-done, on-your-plate (you pick what to report), blockers with their reason, your open questions, and a Mood picked from your standup's real Geekbot options — and posts the standup to Geekbot (→ Slack) with correct mentions and each task as a clickable ClickUp link. Setup is transparent on first run. Read-only except the status changes you command + the confirmed Geekbot post. Requires Google Calendar + Drive + ClickUp; optional Geekbot key / Gmail / team.md.",
       "author": {
         "name": "Misha Skripkovsky"
       },
