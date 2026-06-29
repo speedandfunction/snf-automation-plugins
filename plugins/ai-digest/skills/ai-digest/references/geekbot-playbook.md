@@ -16,7 +16,7 @@ GEEKBOT_API_KEY=$(grep -m1 '^GEEKBOT_API_KEY=' ~/.geekbot/env 2>/dev/null | cut 
 GEEKBOT_API_KEY=${GEEKBOT_API_KEY%$'\r'}; GEEKBOT_API_KEY="${GEEKBOT_API_KEY//[[:space:]]/}"
 GEEKBOT_API_KEY=${GEEKBOT_API_KEY#\"}; GEEKBOT_API_KEY=${GEEKBOT_API_KEY%\"}
 [ -n "$GEEKBOT_API_KEY" ] || { echo "[BROKEN] ~/.geekbot/env has no GEEKBOT_API_KEY value — open the file and paste your key"; exit 1; }
-WK_AGO=$(date -u -d '7 days ago' +%s 2>/dev/null || date -u -v-7d +%s)   # GNU(Linux) || BSD(macOS)
+WK_AGO=$(date -u -d '7 days ago' +%s 2>/dev/null || date -u -v-7d +%s)   # GNU (Linux / Git Bash on Windows) || BSD (macOS)
 # key passed via stdin (-K -), NEVER argv (ps-visible / set -x leaks it):
 printf 'header = "Authorization: %s"\n' "$GEEKBOT_API_KEY" | curl -sS -K - https://api.geekbot.com/v1/standups/ \
 | python3 -c "import sys,json;[print(s['id'],s['name'],'->',[u['username'] for u in s.get('users',[])]) for s in json.load(sys.stdin)]"

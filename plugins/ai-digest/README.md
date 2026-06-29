@@ -11,6 +11,7 @@ On every row the person who closed the ticket, wrote the note, and spoke on the 
 
 ## Scope
 - **Always-on sources:** AUT meeting-notes (primary narrative) + ClickUp (dated signal), cited, print-only draft, top-3 per section, so-what translation + anti-worklog verb-lint.
+- **Interactive bare run:** with no flags the skill opens with a **source-status check** and **offers to walk you through connecting anything missing** (ClickUp / Drive / Geekbot), then **confirms the reporting week** (showing concrete dates) — before the ~10-20 min gather. Pass `--week=…` / `--yes` to skip the prompts (headless / scheduled runs). The editor/audit file is written to the **current working directory** (`./ai-digest-<week>.md`, where you ran it); override with `--out=<path>` (`--out=home` = the legacy `~/.claude/ai-digest/runs/…`).
 - **Geekbot (optional, enrich-only):** run **`/ai-digest --setup`** — an interactive flow that walks you through enabling Geekbot **locally**. Your API key stays in `~/.geekbot/env` (your home folder, `chmod 600`, **outside the repo — never committed, never printed**); the skill only references it by name at run time. One key reads **all team members' reports** from the shared standup in one call (`user_id` omitted). Once on, Geekbot **corroborates** existing notes/ClickUp lines (adds a `(per Geekbot)` citation) and feeds a labelled **"From standups (unverified)"** lane (blockers / forward intent / off-ticket work) — strengthening the otherwise-weak **Priorities** bucket. It **never originates a theme or a "Closed" item** (it's self-reported, the weakest evidence), and a sparse week (<60% reporters) goes editor-file only. **Without a key the digest runs identically on notes+ClickUp.** Mechanics + coverage test: `skills/ai-digest/references/geekbot-playbook.md`.
 - **v2:** a verified tier · fuzzy call↔task join · Slack/Doc delivery · deterministic ranking.
 
@@ -18,9 +19,10 @@ On every row the person who closed the ticket, wrote the note, and spoke on the 
 From inside this repo (so the project skill is discovered), pre-approving the read-only tools it needs:
 
 ```bash
-claude -p "/ai-digest --week=last --dry-run" \
+claude -p "/ai-digest --week=last --dry-run --yes" \
   --allowedTools "Read,Bash,mcp__clickup__clickup_filter_tasks,mcp__clickup__clickup_get_workspace_hierarchy,mcp__clickup__clickup_get_task,mcp__claude_ai_Google_Drive__read_file_content,mcp__claude_ai_Google_Drive__search_files"
 ```
+`--yes` skips the interactive checkpoints (it's a headless `-p` run); `--week` pins the period. The editor/audit file lands in the **current directory** as `./ai-digest-<week>.md` — the path is also printed at the end.
 
 Prerequisites: a connected **ClickUp** MCP and a **Google Drive** connector with read access to the AUT notes folder (`1Rzb…`; if the running account isn't shared into the notes-bot folder you'll get a 403 — share it read-only). To pin gather sub-agents to Sonnet locally: `export CLAUDE_CODE_SUBAGENT_MODEL=claude-sonnet-4-6`.
 
