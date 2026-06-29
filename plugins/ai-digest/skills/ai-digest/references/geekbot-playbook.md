@@ -69,6 +69,6 @@ PASS iff the 2nd call lists usernames **other than the key owner's**, covering t
 
 ## config.md lines (example)
 ```
-Geekbot: standup_id 12345 ("AUT Daily"); key GEEKBOT_API_KEY from ~/.geekbot/env (source it, never print).
+Geekbot: standup_id 12345 ("AUT Daily"); key GEEKBOT_API_KEY from ~/.geekbot/env (read as DATA via grep|cut, NEVER source, never print).
 Geekbot question map: "What did you do?"=PAST | "What will you do?"=FUTURE | "Any blockers?"=BLOCKER | "How do you feel?"=EXCLUDE
 ```

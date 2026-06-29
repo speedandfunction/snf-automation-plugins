@@ -102,5 +102,18 @@ grep -Eqi "no-op under .--yes|setup needs an interactive session" "$SKILL" && pa
 # during-gather heartbeat + bounded retry (the '20 min of silence' half of complaint #1)
 grep -Eqi "Heartbeat" "$SKILL" && grep -Eqi "as it returns|as each sub-agent returns" "$SKILL" && pass "skill: during-gather heartbeat (streams sub-agent summaries)" || err "skill: missing during-gather heartbeat"
 grep -Eqi "Bounded retry" "$SKILL" && pass "skill: bounded ClickUp retry (no serial re-wait / silent-20-min trap)" || err "skill: missing bounded-retry on ClickUp gather"
+
+# ultra-xl review must-fixes (PR #4)
+# (1) the cwd digest output is gitignored (never commit internal pools / standup data)
+GI="$DIR/../../.gitignore"
+grep -Eq "ai-digest-\*\.md|ai-digest-runs/" "$GI" 2>/dev/null && pass "repo .gitignore covers ai-digest cwd output (no committed dept data)" || err "repo .gitignore must ignore ai-digest-*.md / ai-digest-runs/"
+# (2) probe is non-empty-guarded: a zero-row / quiet week is NOT date-blind; ERROR != date-blind
+grep -Eqi "NON-EMPTY result|zero-row probe is NOT date-blind" "$SKILL" && grep -Eqi "ZERO rows" "$SKILL" && pass "skill: date_closed probe non-empty guard (quiet week != date-blind)" || err "skill: probe must not call a zero-row window date-blind"
+grep -Eqi "error is NOT date-blind|an error is NOT date-blind" "$SKILL" && pass "skill: probe ERROR != date-blind (retry then BROKEN)" || err "skill: probe must split ERROR from date-blind"
+# (3) date-blind Closed is notes-mention ONLY (no forbidden get_task for comments) + re-affirms roll-up/dedup
+grep -Eqi "notes-mention ONLY" "$SKILL" && grep -Eqi "notes-mention ONLY" "$CUP" && pass "skill+clickup: date-blind Closed is notes-mention only (no comment/get_task)" || err "date-blind Closed must be notes-mention only"
+grep -Eqi "roll up closed child|Roll up \+ de-dup" "$CUP" && grep -Eqi "roll up closed child subtasks to their parent and de-dup" "$SKILL" && pass "skill+clickup: date-blind branch re-affirms roll-up/dedup/^Step suppression" || err "date-blind branch must re-affirm roll-up/dedup"
+# (4) no stale 'source it' contradicting the RCE fix
+grep -Eqi "source it, never print" "$GB" && err "geekbot-playbook: stale 'source it' example contradicts the RCE fix" || pass "geekbot-playbook: no stale 'source it' (RCE-consistent everywhere)"
 echo
 [ "$fail" -eq 0 ] && { echo "ALL CONTRACT CHECKS PASSED"; exit 0; } || { echo "CONTRACT CHECKS FAILED"; exit 1; }

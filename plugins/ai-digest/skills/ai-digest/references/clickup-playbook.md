@@ -41,9 +41,10 @@ The Step-1 capability probe found the reaching ClickUp connector exposes no usab
 
 1. Pull `clickup_filter_tasks(space_ids=["90156104627"], include_closed=true, subtasks=true)` with **no `date_closed_from/to` window** (paginate to exhaustion).
 2. Keep only tasks whose **current status is a terminal Closed/Done status** — resolve the real status name from the live hierarchy (the status-name caveat in IN-PROGRESS applies; `review` is NOT closed).
-3. **Anchor the week with the notes, not a date:** admit a Closed-status task to the Closed pool ONLY if this week's notes narrative mentions it (by task id/URL, or by initiative-prefix + normalized-title match) OR it carries an in-week comment. This trades the date window for a notes-anchored window — it WILL miss closures that no note mentions (say so in the footer).
-4. Label every line produced this way `(per ClickUp status, notes-dated)`, **never** `(per ClickUp date_closed)`. The digest footer MUST carry the approximate-window caveat (SKILL Step 1 / Step 6).
-5. The reopen-drift check (above) needs `date_created`/`date_updated`, which a date-blind connector also lacks — **skip it here, don't guess.**
+3. **Anchor the week with the notes, not a date:** admit a Closed-status task to the Closed pool ONLY if this week's notes narrative mentions it (by task id/URL, or by initiative-prefix + normalized-title match) — **notes-mention ONLY**. Do NOT use "an in-week comment" as an admission signal: `filter_tasks` returns no comments (see the return-set list above) and reading them needs the forbidden `get_task`. This trades the date window for a notes-anchored window — it WILL miss closures that no note mentions (say so in the footer).
+4. **Roll up + de-dup + suppress `^Step \d+`** exactly as the date-window CLOSED pool above: never emit a closed child + its open parent as two; de-dup by id and normalized title; drop recurring `^Step \d+` leaves.
+5. Label every line produced this way `(per ClickUp status, notes-dated)`, **never** `(per ClickUp date_closed)`. The digest footer MUST carry the approximate-window caveat (SKILL Step 1 / Step 6).
+6. The reopen-drift check (above) needs `date_created`/`date_updated`, which a date-blind connector also lacks — **skip it here, don't guess.**
 
 This converts an ad-hoc degradation into a probed, named, footer-documented path. The In-progress and Priorities pools are already notes-led (below) and degrade fine without `date_closed`.
 
