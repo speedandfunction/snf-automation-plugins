@@ -175,7 +175,7 @@ COMMIT PLAN (TZ <iana>, <window>) → automation space
 ## Step 8 — Execute on Confirm (idempotent, marker-first)
 
 On an explicit Confirm, per selected row:
-- **Dedup FIRST** (scoped to the resolved list, OPEN tasks only): enumerate with `clickup_filter_tasks(include_closed=false)` and READ each candidate's description for the marker `<!-- dca:<workspace_id>:<list_id>:<assignee_id>:<source_doc_id>:<action-key> -->` (field filters don't see description bodies). A marker hit on an OPEN task = already committed → **SKIP**. Fallback for pre-existing human tasks with no marker: Jaccard ≥0.70 on casefolded/NFKC title tokens → a **candidate**, show it and default to create-new (no in-place update in this version). Closed tasks and tasks not owned by the resolved assignee are never matched.
+- **Dedup FIRST** (scoped to the resolved list, OPEN tasks only): enumerate with `clickup_filter_tasks(include_closed=false)` — **enumerate each list ONCE per run and cache it; do not re-enumerate per row** — and READ each candidate's description for the marker `<!-- dca:<workspace_id>:<list_id>:<assignee_id>:<source_doc_id>:<action-key> -->` (field filters don't see description bodies). A marker hit on an OPEN task = already committed → **SKIP**. Fallback for pre-existing human tasks with no marker: Jaccard ≥0.70 on casefolded/NFKC title tokens → a **candidate**, show it and default to create-new (no in-place update in this version). Closed tasks and tasks not owned by the resolved assignee are never matched.
 - **CREATE** → `clickup_create_task`:
   - `list` = the resolved list (automation space)
   - `name` = `[Call: <meeting name> <date>] <verb-first action>` (≤ ~100 chars; regenerate shorter rather than truncate)
@@ -186,6 +186,10 @@ On an explicit Confirm, per selected row:
   - `description` = the cited block (`> <verbatim quote>` + `<call name>, <date>` + `Notes: <Doc URL>` + the context description) + the hidden marker
   - A field that fails validation drops to blank with a one-line note, never guessed.
 - **SKIP** → no call.
+
+**After the writes — confirm with clickable links.** Report each created task as a **clickable ClickUp link** — `✓ Created [<title>](https://app.clickup.com/t/<new-id>)` — NEVER a bare id (a raw id isn't searchable in ClickUp's box; the link opens the task). Show each SKIP with its existing task link too.
+
+**Performance (fast push, not brute-force).** Fetch the workspace hierarchy ONCE (`clickup_get_workspace_hierarchy`) and cache it; enumerate each destination list's open tasks ONCE per run (never per row); resolve all non-self assignees in a single batched `clickup_resolve_assignees` call. Minimise round-trips for the same result.
 
 **Partial-failure:** one item at a time; on an MCP error, STOP, report what already succeeded (the markers let a re-run recognize them), do NOT silently retry.
 
