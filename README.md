@@ -52,19 +52,19 @@ Install any subset:
 .claude-plugin/marketplace.json   # marketplace manifest — the CANONICAL plugin list
 plugins/<name>/
   .claude-plugin/plugin.json      # plugin manifest (+ command/requirements for the README table)
-  SKILL.md                        # SINGLE-SKILL plugin → SKILL.md at the plugin ROOT
-  references/                     # supporting docs the skill reads (relative to SKILL.md)
-  scripts/ | config/              # other supporting files (where applicable)
-  # MULTI-skill plugins instead use skills/<name>/SKILL.md (+ optional commands/<name>.md)
+  skills/<name>/SKILL.md          # the skill (folder name = invocation token); a plugin may ship several
+  commands/<name>.md              # thin slash-command wrapper → registers the clean /<name>
+  references/ | scripts/ | config/ # supporting files (where applicable)
 scripts/gen-readme.mjs            # regenerates this README's plugin table from the manifests
 .github/workflows/readme.yml      # CI: runs gen-readme on every push, auto-commits the result
 ```
 
 ### Naming convention
-A **single-skill plugin** puts its `SKILL.md` at the **plugin root** (not `skills/<name>/`). Claude Code
-then registers it as a clean **`/<plugin>`** — e.g. `/morning-brief`, `/daily-call-tasks` — with **no
-doubled `plugin:skill`** namespace. (A plugin that genuinely ships several skills uses `skills/<name>/`,
-invoked as `/<plugin>:<skill>`.) The plugin name IS the command; keep them identical and singular.
+Keep the **skill folder name identical to the plugin name** (`plugins/morning-brief/skills/morning-brief/`).
+Claude Code then registers a clean **`/morning-brief`** slash command — backed by `commands/<name>.md`,
+the proven mechanism the working plugins use (`/clickup`, `/gevent`, `/ai-digest`). The doubled
+`morning-brief:morning-brief` you may see is only the **Skill-tool** display form, **not** the slash command —
+typing `/morning-brief` (or natural language) works. Keep the plugin name singular and equal to its command.
 
 Bundled scripts are addressed via `${CLAUDE_PLUGIN_ROOT}` so they resolve regardless of CWD.
 
