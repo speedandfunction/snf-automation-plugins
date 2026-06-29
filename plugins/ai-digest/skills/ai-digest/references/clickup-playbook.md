@@ -15,6 +15,8 @@ Space `90156104627` is literally named **"[AUT] Automation Department"** — the
 
 ## CLOSED pool (the "Closed this week" section)
 
+> **Connectors differ.** If the Step-1 preflight flagged this ClickUp connector **date-blind** (it reaches the space but exposes no usable `date_closed`), SKIP the date-window query below and use the **date-blind fallback** at the end of this section instead.
+
 ```
 clickup_filter_tasks(
   space_ids=["90156104627"],
@@ -32,6 +34,19 @@ Then, IN-SKILL (do not trust the query alone):
 2. **Subtask roll-up + de-dup.** `subtasks=true` returns parents AND children; `subtasks=false` *under-counts* (it drops genuinely-closed leaf tasks whose parent is still open — e.g. `86ca5urt4`, `86ca2eu4a`). So pull with `subtasks=true`, then: never emit a closed CHILD and its OPEN parent as two items (roll the child into the parent's initiative); de-dup by task id and by normalized title; **suppress recurring step leaves** matching `^Step \d+` (e.g. the "Step 1/2/3 — …" CPB check-in tasks).
 3. **`date_closed` ≠ "shipped".** Many closures are housekeeping/admin/research ("Review all comments", "Sync all names", "Research X"). Keep them eligible, but the so-what + verb-lint (see `output-style.md`) decide whether a row reads as a shipment, a research result, or admin. Never auto-label a closed card "shipped".
 4. **Reopen→reclose drift.** A task finished a prior week can be reopened and re-closed, giving it a fresh in-window `date_closed` so it looks new. NOTE: `filter_tasks` does NOT return `date_created` / `date_updated` (it returns only `id, name, status, url, priority, assignees, tags, due_date, date_closed, list`). So this check needs a **single `get_task` per Closed-pool row** — and ONLY the Closed pool (a handful of tasks/week), never the open pools (that per-task fan-out over ~60 tasks is what caused the original hang). With `date_created` + `date_updated` in hand: when `date_created` is well before the week AND `date_updated > date_closed`, treat the item as a possible re-close — keep it but **flag it in the editor file** ("possible re-close — verify it's new") rather than presenting it as this week's accomplishment. If you skip the `get_task` carve-out (e.g. to save calls), drop this check rather than guessing — do not invent a `date_created`.
+
+### CLOSED pool — date-blind fallback (when preflight finds no `date_closed`)
+
+The Step-1 capability probe found the reaching ClickUp connector exposes no usable `date_closed` (reach OK, but the field is absent / always-null). You **cannot** date-pin closures with a window. Use this designed fallback — do NOT improvise:
+
+1. Pull `clickup_filter_tasks(space_ids=["90156104627"], include_closed=true, subtasks=true)` with **no `date_closed_from/to` window** (paginate to exhaustion).
+2. Keep only tasks whose **current status is a terminal Closed/Done status** — resolve the real status name from the live hierarchy (the status-name caveat in IN-PROGRESS applies; `review` is NOT closed).
+3. **Anchor the week with the notes, not a date:** admit a Closed-status task to the Closed pool ONLY if this week's notes narrative mentions it (by task id/URL, or by initiative-prefix + normalized-title match) — **notes-mention ONLY**. Do NOT use "an in-week comment" as an admission signal: `filter_tasks` returns no comments (see the return-set list above) and reading them needs the forbidden `get_task`. This trades the date window for a notes-anchored window — it WILL miss closures that no note mentions (say so in the footer).
+4. **Roll up + de-dup + suppress `^Step \d+`** exactly as the date-window CLOSED pool above: never emit a closed child + its open parent as two; de-dup by id and normalized title; drop recurring `^Step \d+` leaves.
+5. Label every line produced this way `(per ClickUp status, notes-dated)`, **never** `(per ClickUp date_closed)`. The digest footer MUST carry the approximate-window caveat (SKILL Step 1 / Step 6).
+6. The reopen-drift check (above) needs `date_created`/`date_updated`, which a date-blind connector also lacks — **skip it here, don't guess.**
+
+This converts an ad-hoc degradation into a probed, named, footer-documented path. The In-progress and Priorities pools are already notes-led (below) and degrade fine without `date_closed`.
 
 ## IN-PROGRESS pool (the "In progress / discussed" section)
 

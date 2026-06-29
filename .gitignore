@@ -12,3 +12,9 @@ backups/
 .DS_Store
 .planning/
 *.local
+
+# ai-digest skill — local digest output written to the cwd (internal ClickUp pools +
+# citations always; raw per-person Geekbot standup answers when Geekbot is enabled).
+# Never commit it.
+ai-digest-*.md
+ai-digest-runs/

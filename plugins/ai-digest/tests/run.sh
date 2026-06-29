@@ -78,5 +78,42 @@ grep -Eqi "BROKEN" "$SKILL" && grep -Eqi "auth failed|configured but|loud-fail|n
 grep -qi "user_id" "$GB" && grep -Eqi "OMITTED|omit .user_id|all members|all participants" "$GB" && pass "geekbot: omit user_id => ALL team members in one call" || err "geekbot: must fetch all members"
 grep -qi "never committed\|LOCAL ONLY\|outside this repo\|outside .* repo" "$GB" && pass "geekbot-playbook: key is local-only / never committed" || err "geekbot-playbook: must state key is local-only"
 grep -q -- "--setup" "$DIR/commands/ai-digest.md" && pass "command: --setup advertised" || err "command: --setup missing"
+
+# interactive first-run UX (Andy feedback): setup OFFER, period confirm, connector onboarding
+grep -q "Step 1b" "$SKILL" && grep -qi "AskUserQuestion" "$SKILL" && pass "skill: Step 1b first-run setup OFFER (interactive)" || err "skill: missing Step 1b interactive setup OFFER"
+grep -Eqi "Connector setup guidance" "$SKILL" && grep -Eqi "never connects them itself|walks any machine through connecting" "$SKILL" && pass "skill: guided connector onboarding (ClickUp/Drive/Geekbot)" || err "skill: missing guided connector-onboarding"
+grep -Eqi "Confirm the period" "$SKILL" && grep -Eqi "Reporting week" "$SKILL" && pass "skill: bare-run confirms the reporting week (shows dates)" || err "skill: must confirm the period on a bare run"
+grep -Eqi "interactive run AND when .--yes|headless|claude -p" "$SKILL" && pass "skill: interactive checkpoints skipped when headless / --yes" || err "skill: must skip interactive checkpoints headless"
+grep -q -- "--non-interactive" "$SKILL" && grep -q -- "--yes" "$SKILL" && pass "skill: --yes/--non-interactive flag documented" || err "skill: missing --yes/--non-interactive flag"
+
+# output lands in cwd, not a hidden home dir (Andy feedback)
+grep -Eqi "current working directory" "$SKILL" && grep -F -- "--out" "$SKILL" >/dev/null && pass "skill: editor file written to cwd by default (--out override)" || err "skill: output must default to cwd"
+grep -F "ai-digest-<YYYY-Www>" "$SKILL" >/dev/null && pass "skill: default editor filename ./ai-digest-<week>.md" || err "skill: missing cwd default filename"
+grep -Eqi "cross-platform" "$SKILL" && grep -Eqi "Windows" "$SKILL" && pass "skill: cross-platform output path (no macOS-only ~/stat -f)" || err "skill: output path must be cross-platform"
+
+# ClickUp date_closed capability probe + date-blind fallback (discovered in Andy's run)
+grep -Eqi "date_closed.{0,3}capability" "$SKILL" && grep -Eqi "date-blind" "$SKILL" && pass "skill: preflight probes date_closed capability (date-blind path)" || err "skill: must probe date_closed capability"
+grep -Eqi "date-blind fallback" "$CUP" && grep -Eqi "per ClickUp status, notes-dated" "$CUP" && pass "clickup: designed date-blind Closed-pool fallback (status+notes)" || err "clickup: missing date-blind fallback"
+# date-blind branch is WIRED into the executable Step-3 gather prompt (not just the playbook)
+grep -F "[OK date-blind]" "$SKILL" >/dev/null && grep -Eqi "per ClickUp status, notes-dated" "$SKILL" && pass "skill: Step-3 ClickUp sub-agent has the date-blind branch inline (reachable)" || err "skill: date-blind fallback not wired into Step-3 sub-agent prompt"
+# interactive checkpoints are headless-SAFE by default (don't hang automation)
+grep -Eqi "default to NON-interactive|unsure.*non-interactive|non-TTY" "$SKILL" && pass "skill: unsure-interactivity defaults to non-interactive (no hang)" || err "skill: must default to non-interactive when unsure"
+grep -Eqi "no-op under .--yes|setup needs an interactive session" "$SKILL" && pass "skill: --setup is a no-op under --yes/headless" || err "skill: --setup must not prompt headless"
+# during-gather heartbeat + bounded retry (the '20 min of silence' half of complaint #1)
+grep -Eqi "Heartbeat" "$SKILL" && grep -Eqi "as it returns|as each sub-agent returns" "$SKILL" && pass "skill: during-gather heartbeat (streams sub-agent summaries)" || err "skill: missing during-gather heartbeat"
+grep -Eqi "Bounded retry" "$SKILL" && pass "skill: bounded ClickUp retry (no serial re-wait / silent-20-min trap)" || err "skill: missing bounded-retry on ClickUp gather"
+
+# ultra-xl review must-fixes (PR #4)
+# (1) the cwd digest output is gitignored (never commit internal pools / standup data)
+GI="$DIR/../../.gitignore"
+grep -Eq "ai-digest-\*\.md|ai-digest-runs/" "$GI" 2>/dev/null && pass "repo .gitignore covers ai-digest cwd output (no committed dept data)" || err "repo .gitignore must ignore ai-digest-*.md / ai-digest-runs/"
+# (2) probe is non-empty-guarded: a zero-row / quiet week is NOT date-blind; ERROR != date-blind
+grep -Eqi "NON-EMPTY result|zero-row probe is NOT date-blind" "$SKILL" && grep -Eqi "ZERO rows" "$SKILL" && pass "skill: date_closed probe non-empty guard (quiet week != date-blind)" || err "skill: probe must not call a zero-row window date-blind"
+grep -Eqi "error is NOT date-blind|an error is NOT date-blind" "$SKILL" && pass "skill: probe ERROR != date-blind (retry then BROKEN)" || err "skill: probe must split ERROR from date-blind"
+# (3) date-blind Closed is notes-mention ONLY (no forbidden get_task for comments) + re-affirms roll-up/dedup
+grep -Eqi "notes-mention ONLY" "$SKILL" && grep -Eqi "notes-mention ONLY" "$CUP" && pass "skill+clickup: date-blind Closed is notes-mention only (no comment/get_task)" || err "date-blind Closed must be notes-mention only"
+grep -Eqi "roll up closed child|Roll up \+ de-dup" "$CUP" && grep -Eqi "roll up closed child subtasks to their parent and de-dup" "$SKILL" && pass "skill+clickup: date-blind branch re-affirms roll-up/dedup/^Step suppression" || err "date-blind branch must re-affirm roll-up/dedup"
+# (4) no stale 'source it' contradicting the RCE fix
+grep -Eqi "source it, never print" "$GB" && err "geekbot-playbook: stale 'source it' example contradicts the RCE fix" || pass "geekbot-playbook: no stale 'source it' (RCE-consistent everywhere)"
 echo
 [ "$fail" -eq 0 ] && { echo "ALL CONTRACT CHECKS PASSED"; exit 0; } || { echo "CONTRACT CHECKS FAILED"; exit 1; }
