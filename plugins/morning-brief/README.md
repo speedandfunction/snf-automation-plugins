@@ -40,10 +40,11 @@ No flags: setup (identity + dependencies) is **transparent on first run**; a **s
 
 ## Layout
 ```
-skills/
-  morning-brief/   SKILL.md  references/{onboarding,extraction,sections}.md
-commands/          morning-brief.md
+SKILL.md            ← single skill at the plugin ROOT → invoked as the bare /morning-brief
+references/         onboarding.md · extraction.md · sections.md
+.claude-plugin/     plugin.json
 ```
+(Root `SKILL.md` with `name` + `user-invocable: true` registers the clean bare `/morning-brief` — no `skills/<name>/` subdir, no `commands/` wrapper, no `plugin:skill` colon.)
 - `references/onboarding.md` — the self-contained identity wizard + atomic/flock write helper.
 - `references/extraction.md` — morning-brief's own copy of the Sonnet call-extraction primitives.
 - `references/sections.md` — status-verb→status mapping + safe apply, snapshot-diff "what was done", plate dedup, block-reason derivation, the TeamMD resolver, the real-Geekbot-mood read, and the Geekbot payload.

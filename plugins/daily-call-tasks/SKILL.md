@@ -168,10 +168,12 @@ Render the plan (per selected row), then ask via **`AskUserQuestion`** ("Create 
 COMMIT PLAN (TZ <iana>, <window>) → automation space
 1 → CREATE in <Space/Folder/List>: "[Call: <name> <date>] <title>"  · status=<To-Do|Backlog> priority=<…|—> due=<YYYY-MM-DD|—> assignee=<resolved member>
 3 → CREATE in <…>: "…"  · assignee=Andriy (teammate — resolved id <id>)
-5 → SKIP (already committed: <task-url>)
+5 → SKIP (already committed: [<title>](https://app.clickup.com/t/<id>))
 ```
 
 **TEAM-ASSIGN GATING:** when a row's assignee is NOT the user, the COMMIT PLAN MUST show the **resolved ClickUp member (name + id)** for that row. If a name can't be resolved to exactly one workspace member (`clickup_resolve_assignees` / `clickup_find_member_by_name`), it is **hard-ambiguous → ask, never silently mis-assign**; until resolved, that row is excluded from the write. The user's Confirm covers the whole plan including the shown assignees.
+
+**STATUS GATING (resolve at PLAN time, not create time):** resolve each row's To-Do/Backlog to the destination list's REAL status name (`clickup_get_list`/`expand_statuses`) BEFORE rendering the COMMIT PLAN, and show the resolved status in the plan. If a row's intended status has no match on its list, it is **hard-ambiguous → ask which real status (offer the list's statuses), never silently blank** — mirror the assignee gate. This keeps **confirmed == created**: the user confirms the actual status that will be written.
 
 ## Step 8 — Execute on Confirm (idempotent, marker-first)
 
@@ -180,7 +182,7 @@ On an explicit Confirm, per selected row:
 - **CREATE** → `clickup_create_task`:
   - `list` = the resolved list (automation space)
   - `name` = `[Call: <meeting name> <date>] <verb-first action>` (≤ ~100 chars; regenerate shorter rather than truncate)
-  - `status` = the row's To-Do/Backlog, **validated** ∈ the list's real status names (`clickup_get_list`/`expand_statuses`; map "to-do"→the unstarted status, "backlog"→the backlog status)
+  - `status` = the row's status **already resolved + confirmed in Step 7** (the real list status name; Step 7 asked the user if it couldn't map — it is never silently blanked here)
   - `priority` = the row's value if set, ∈ {urgent,high,normal,low}
   - `due_date` = the row's deadline if set, a real `YYYY-MM-DD`
   - `assignee` = the **resolved member id** (user by default; a teammate if set + resolved in Step 7)
@@ -197,7 +199,7 @@ On an explicit Confirm, per selected row:
 ## Step 9 — Report (MANUAL push)
 ```
 Done — created <N>, skipped <K> (already committed). Assigned to others: <names>.
-<links to each created task>
+Each created/skipped task as a clickable [<title>](https://app.clickup.com/t/<id>) link.
 ```
 
 ## Failure handling (never throws away the run)

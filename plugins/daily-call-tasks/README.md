@@ -76,7 +76,8 @@ idempotency marker; already-committed rows are skipped).
 
 ## Layout
 ```
-skills/
-  daily-call-tasks/   SKILL.md  references/{extraction.md, commit-rules.md}
-commands/             daily-call-tasks.md
+SKILL.md            ← single skill at the plugin ROOT → invoked as the bare /daily-call-tasks
+references/         extraction.md · commit-rules.md
+.claude-plugin/     plugin.json
 ```
+(Root `SKILL.md` with `name` + `user-invocable: true` registers the clean bare `/daily-call-tasks` — no `skills/<name>/` subdir, no `commands/` wrapper, no `plugin:skill` colon.)

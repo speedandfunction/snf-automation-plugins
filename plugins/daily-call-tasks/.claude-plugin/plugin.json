@@ -1,6 +1,6 @@
 {
   "name": "daily-call-tasks",
-  "version": "2.1.1",
+  "version": "2.1.2",
   "description": "One skill, one command for the calls you attended. Scheduled run \u2192 a read-only, cited TABLE of your action items for yesterday (one table per meeting: heading = name \u00b7 date+time \u00b7 participants; columns \u2116 | task name | priority | status | deadline | assignee | description; continuous numbering across all tables). Manual run \u2192 asks the period (+ optional participants/team filter), renders the same tables, then offers to push the chosen tasks to ClickUp's automation space with status/priority/deadline/assignee (team-assign allowed on explicit confirmation). Sonnet sub-agents per call; never invents an item.",
   "command": "`/daily-call-tasks`",
   "requirements": "**Google Calendar** + **Google Drive** connectors; per-call sub-agents on **Sonnet** (`CLAUDE_CODE_SUBAGENT_MODEL=claude-sonnet-4-6`). The manual ClickUp push also needs the **ClickUp MCP**; for non-self (team) assignees it resolves names via `~/Work/team.md` / `~/.claude/shared/identity.json` and `clickup_resolve_assignees`. A transcript notetaker (e.g. Sembly) is optional. Scheduling is per-user via `/schedule`.",
