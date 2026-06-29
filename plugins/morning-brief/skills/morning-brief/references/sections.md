@@ -96,12 +96,18 @@ Detected by a `mcp__*Gmail*__*` tool in Step 0. **Read-only**, bounded:
 - Cap at `pageSize` (≤15); if more, append "+N more unread important".
 - No Gmail tool → skip with a hint.
 
-## Step 5 — Mood: read the REAL Geekbot options
-Andy configured several mood options in Geekbot; the skill must present THOSE, not invented defaults.
-1. `GET https://api.geekbot.com/v1/standups/` (header `Authorization: <RAW_API_KEY>`) → array of standups; pick the configured `geekbot.standup_id` (or the only standup).
-2. Find the standup's **mood question** — the one whose `text` matches `/mood|how (are|do) you|how do you feel/i`. Geekbot mood questions are a **multiple-choice** type; read the choices from the question's `answer_choices` (a.k.a. `choices` / `answers`) array — these are Andy's actual options.
-3. Present those exact strings to the user via `AskUserQuestion` (+ a "skip" path). Send the chosen string back as that question's answer in Step 8.
-4. **No key / mood question not found** → degrade: free-text mood prompt, post is preview-only; if found-but-skipped, send the question's allowed "no answer" (or `—`), never a made-up mood.
+## Step 5 — Mood (the standup's real options + custom)
+The known Geekbot mood options Andy configured — present THESE exact choices (emoji included) via `AskUserQuestion`, PLUS a custom free-text. They MUST appear:
+- 🚀 **Full power**
+- 🙂 **Good**
+- 😎 **Getting things done**
+- 😔 **Low energy**
+- 💊 **Out**
+- ✍️ **custom** — the user types their own mood
+
+**Reconcile against the live standup only if a Geekbot key is present** (the config could change): `GET https://api.geekbot.com/v1/standups/` (header `Authorization: <RAW_API_KEY>`) → the configured `geekbot.standup_id` (or the only standup) → the **mood question** (`text` ~ `/mood|how (are|do) you|how do you feel/i`, multiple-choice) → its `answer_choices`. If the live choices differ, use them; otherwise use the six above. NEVER invent options.
+
+The Step-8 post value = the chosen option string **verbatim (emoji included)**, or the user's custom text. No key → still ask, post is preview-only; if skipped, send the question's allowed "no answer" (`—`), never a made-up mood.
 
 ## Step 8 — Geekbot post
 API base `https://api.geekbot.com/v1` (trailing slashes matter). Auth header **`Authorization: <RAW_API_KEY>`** (NO `Bearer`/`Token` prefix — a prefix 401s) + `Content-Type: application/json`. Key is MEMBER-scoped (per-user, paid plan); read from env `GEEKBOT_API_KEY` or `~/.claude/morning-brief/config.json` (`geekbot.api_key`) — NEVER hardcode.
