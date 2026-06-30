@@ -2,7 +2,7 @@
 
 Logic adapted (and trimmed) from Sasha Marchuk's read-only `find-call` skill. This skill targets a **whole-set digest rendered as tables** (scheduled = read-only; manual = tables + optional ClickUp push). It KEEPS the proven extraction primitives and DROPS find-call's interactive scoring/disambiguation.
 
-This one skill replaces the former two (`daily-call-tasks` read-only digest + `daily-call-tasks-commit` interactive write). Extraction is here; the create/dedup/idempotency rules are in `commit-rules.md` in this same `references/` folder.
+This one skill replaces the former two (`daily-call-tasks` read-only digest + `daily-call-tasks-commit` interactive write). Extraction is here; the create/dedup/idempotency rules are in `commit-rules.md` in this same `${CLAUDE_PLUGIN_ROOT}/references/` folder.
 
 ## Kept from find-call
 - Calendar-as-index discovery of the user's events.

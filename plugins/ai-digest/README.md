@@ -39,7 +39,7 @@ Defaults target the S&F automation department: ClickUp space `90156104627`, note
 ```
 plugins/ai-digest/
   .claude-plugin/plugin.json
-  SKILL.md                        # the brain (plugin root → bare /ai-digest): scope, gather, buckets, rank, emit
+  commands/ai-digest.md           # the brain (command → bare /ai-digest): scope, gather, buckets, rank, emit
   references/clickup-playbook.md   # whole-space scope, date_closed!=null, subtask roll-up, status buckets
   references/output-style.md       # so-what template, verb-lint, no-verification rule
   references/geekbot-playbook.md   # optional Geekbot enrich-only source mechanics + RCE-safe key read

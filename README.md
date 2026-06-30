@@ -52,25 +52,27 @@ Install any subset:
 .claude-plugin/marketplace.json   # marketplace manifest — the CANONICAL plugin list
 plugins/<name>/
   .claude-plugin/plugin.json      # plugin manifest (+ command/requirements for the README table)
-  SKILL.md                        # the skill at the plugin ROOT (name: <name>, user-invocable: true) → registers the bare /<name>
-  references/ | scripts/ | config/ # supporting files beside SKILL.md (where applicable)
+  commands/<name>.md              # the slash COMMAND (the instruction body) → registers the bare /<name>
+  references/ | scripts/ | config/ # supporting files the command reads via ${CLAUDE_PLUGIN_ROOT}/references/…
 scripts/gen-readme.mjs            # regenerates this README's plugin table from the manifests
 .github/workflows/readme.yml      # CI: runs gen-readme on every push, auto-commits the result
 ```
 
-### Naming convention — clean `/<plugin>` invocation (root-SKILL layout)
-To register a **bare `/<plugin>`** slash command (e.g. `/ai-digest`, NOT `/ai-digest:ai-digest`), put the
-skill's `SKILL.md` at the **plugin root** with `name: <plugin>` + `user-invocable: true`, its `references/`
-beside it, and **no `skills/<name>/` subdir and no `commands/<name>.md` wrapper**:
+### Naming convention — clean bare `/<plugin>` invocation (COMMAND layout)
+To register a **bare `/<plugin>`** slash (e.g. `/ai-digest`, NOT `/ai-digest:ai-digest`), the plugin must
+expose a **COMMAND** named after the plugin — `commands/<plugin>.md` holding the instruction body — and
+**no skill** (no `skills/<name>/`, no root `SKILL.md`):
 ```
 plugins/<plugin>/
   .claude-plugin/plugin.json
-  SKILL.md            # name: <plugin>, user-invocable: true  → Claude Code registers /<plugin>
-  references/…
+  commands/<plugin>.md   # the whole instruction body → Claude Code registers the bare /<plugin>
+  references/…           # read from the command via ${CLAUDE_PLUGIN_ROOT}/references/<file>.md
 ```
-A skill under `skills/<name>/` is ALWAYS namespaced `/<plugin>:<name>`, and a plugin `commands/<name>.md`
-is ALWAYS `/<plugin>:<name>` too — both produce the doubled `ai-digest:ai-digest`. Only a **plugin-root
-`SKILL.md`** yields the clean bare `/<plugin>`. Keep the plugin name singular.
+**Empirically (plugin-catalog-cache):** a **COMMAND** registers a **bare `/<name>`** (proven by the official
+`code-review` / `feature-dev` plugins — `commands:[<name>]`, `skills:[]`). A **SKILL** — whether under
+`skills/<name>/` OR a single root `SKILL.md`, and regardless of `user-invocable` — is **always namespaced
+`/<plugin>:<skill>`** (that is what produced the doubled `morning-brief:morning-brief`). So a clean bare
+command requires the command-only shape, not a skill. Keep the command basename == the plugin name.
 
 Bundled scripts are addressed via `${CLAUDE_PLUGIN_ROOT}` so they resolve regardless of CWD.
 

@@ -1,8 +1,7 @@
 ---
-name: daily-call-tasks
+argument-hint: "[period: yesterday | Nd | YYYY-MM-DD] [optional participants/team filter]"
 description: From the calls you attended in a window (scheduled run → yesterday auto; manual run → asks the period, plus an optional participants/team filter), reads your Google Calendar for attended events, pulls each event's notes-bot "Meeting Resources" Meeting Notes (and any transcript), and spawns a Sonnet sub-agent per call to extract action items with verbatim citations. Renders ONE table per meeting (heading = meeting name · date+time · participants; columns № | task name | priority | status | deadline | assignee | description; continuous numbering across all tables). On a manual run it then offers to push the chosen tasks to ClickUp (create in the automation space, with status/priority/deadline/assignee — team-assign allowed on explicit confirmation). Scheduled runs are read-only (tables only, no push). Never invents an item. Use for "what action items came up in my calls", a morning recap, turning call items into ClickUp tasks, or scheduling a daily digest.
 disable-model-invocation: false
-user-invocable: true
 ---
 
 # /daily-call-tasks — call action items → tables → ClickUp (one skill, one command)
@@ -48,7 +47,7 @@ A `Bash: test -t 0 && test -t 1 && echo TTY || echo NOTTY` probe MAY be used as 
 - **Timezone (MANDATORY — a scheduled routine runs in UTC):** resolve the user's IANA timezone in this order: an explicit `--tz=`/period TZ → `~/.claude/gevent/config.json` `defaults.timezone` → the calendar's own timezone (from the Calendar API response) → fall back to `UTC` and SAY SO in the footer. NEVER use the bare server clock: "yesterday" in UTC silently drops late-evening local calls and leaks the day-before. Always state the TZ you used.
 - **Providers (detect from the session tool list, prefer-then-fallback):**
   - Calendar: a Google Calendar MCP/connector (`mcp__*Google_Calendar*__list_events`) OR `npx @googleworkspace/cli calendar events list`.
-  - Docs: **PRIMARY = the Drive connector's `read_file_content(fileId)`** — returns a Google Doc's text directly (no export, no `mimeType`); in a cloud routine this is the ONLY working path, so try the connector FIRST. LOCAL-ONLY FALLBACK: `npx @googleworkspace/cli drive files export` then `Read` (see `references/extraction.md`).
+  - Docs: **PRIMARY = the Drive connector's `read_file_content(fileId)`** — returns a Google Doc's text directly (no export, no `mimeType`); in a cloud routine this is the ONLY working path, so try the connector FIRST. LOCAL-ONLY FALLBACK: `npx @googleworkspace/cli drive files export` then `Read` (see `${CLAUDE_PLUGIN_ROOT}/references/extraction.md`).
   - Transcripts (optional): a connected notetaker (e.g. `mcp__sembly-ai__*`). If none connected, run notes-only and say so. Never required.
   - ClickUp (MANUAL push only): probe `mcp__clickup__clickup_get_workspace_hierarchy` only when the user asks to push; on auth-fail at that point, stop with the error and keep the tables.
 
@@ -92,7 +91,7 @@ For each event with notes/transcript, spawn a **Sonnet** sub-agent (cap default 
 - **Windows PowerShell:** `$env:CLAUDE_CODE_SUBAGENT_MODEL = "claude-sonnet-4-6"` before launching; **Windows cmd:** `set CLAUDE_CODE_SUBAGENT_MODEL=claude-sonnet-4-6`. (Note: this project is a Mac/Linux shop — the bash/zsh form above is the supported path; the Windows forms are best-effort.)
 - Verify it took: `echo $CLAUDE_CODE_SUBAGENT_MODEL` (bash/zsh) should print `claude-sonnet-4-6`. If it is empty/unset, the sub-agents may fall back to a non-Sonnet model and citation fidelity is no longer guaranteed — STOP and set it first.
 
-> The sub-agent inherits ONLY the prompt below — it CANNOT read this SKILL.md or `references/extraction.md`. Every load-bearing rule it must apply is therefore inlined into the prompt verbatim (anti-injection, attended-scope, Action-Points routing, the per-field never-invent/cite rules, the `<CALL_DATE>`/`<USER_TZ>` relative-date resolution, and the stable per-item locator the orchestrator needs to build the dedup key). Do NOT trim these inline rules to "save tokens" — a thinner prompt silently drops the guarantee.
+> The sub-agent inherits ONLY the prompt below — it CANNOT read this SKILL.md or `${CLAUDE_PLUGIN_ROOT}/references/extraction.md`. Every load-bearing rule it must apply is therefore inlined into the prompt verbatim (anti-injection, attended-scope, Action-Points routing, the per-field never-invent/cite rules, the `<CALL_DATE>`/`<USER_TZ>` relative-date resolution, and the stable per-item locator the orchestrator needs to build the dedup key). Do NOT trim these inline rules to "save tokens" — a thinner prompt silently drops the guarantee.
 
 Sub-agent prompt:
 
@@ -231,7 +230,7 @@ On an explicit Confirm, per selected row:
   ```
   - **MATCH key = `(workspace_id, list_id, source_doc_id, call_date, action-key)` — exact on all five.** Note `assignee_id` is NOT in the match key (a team-pull re-run or an `assignee N:` edit re-resolves a different id; keying on it caused silent duplicates). Assignee is recorded as ordinary task metadata (the `assignee` field), not as a dedup discriminator.
   - `call_date` = the call's start date `YYYY-MM-DD` (the event instance). This disambiguates a **recurring** weekly call whose bot reuses ONE Google Doc across weeks — without it, a genuinely new week's item exact-matches a prior-week task and is silently DROPPED. Different week ⇒ different `call_date` ⇒ no false match.
-  - `source_doc_id` = the Google Doc id of the Meeting Notes (or, for a promotion, the Transcription Doc id). **For a notetaker transcript that DID expose a readable Drive Doc whose stable id is its meeting id, use `sembly:<meeting_id>` as `source_doc_id`** so that promoted variant still has a stable scoped id. (`sembly:<meeting_id>` is a marker-SCOPE id, NEVER a citation — a Sembly source reachable only by a meeting id is unreadable by the sub-agent, so it never reaches a create in the first place; see `references/extraction.md` citation allow-list.)
+  - `source_doc_id` = the Google Doc id of the Meeting Notes (or, for a promotion, the Transcription Doc id). **For a notetaker transcript that DID expose a readable Drive Doc whose stable id is its meeting id, use `sembly:<meeting_id>` as `source_doc_id`** so that promoted variant still has a stable scoped id. (`sembly:<meeting_id>` is a marker-SCOPE id, NEVER a citation — a Sembly source reachable only by a meeting id is unreadable by the sub-agent, so it never reaches a create in the first place; see `${CLAUDE_PLUGIN_ROOT}/references/extraction.md` citation allow-list.)
   - `action-key` = a hash of a STABLE source locator built from the sub-agent's returned `section` + `item_anchor` (the content-stable item identity) — **NOT a line ordinal** (a single insert/re-order in the notes re-keys ordinal-based items → duplicates) and **NOT the volatile extracted prose** (LLM wording drifts run-to-run). For a transcript source with no section, use `transcript` + `item_anchor`.
 
   A **MATCH-key hit on any enumerated task (open OR closed)** = already committed → **SKIP** (report the existing task link). Fallback for pre-existing human tasks with no marker: Jaccard ≥0.70 on casefolded/NFKC title tokens → a **candidate**, show it and default to create-new (no in-place update in this version).
@@ -264,4 +263,4 @@ Each created/skipped task as a clickable [<title>](https://app.clickup.com/t/<id
 - HTML description, no Meeting Resources block (common for 1-on-1s) → treat as `no notes` (Step 3), continue.
 - ClickUp unreachable at push time → keep the rendered tables, report the error, write nothing.
 
-See `references/extraction.md` for the regexes, the attended predicate, notes-section parsing, and the per-item fields. See `references/commit-rules.md` for the dedup marker, idempotency, status heuristic, assignee resolution, and task shape.
+See `${CLAUDE_PLUGIN_ROOT}/references/extraction.md` for the regexes, the attended predicate, notes-section parsing, and the per-item fields. See `${CLAUDE_PLUGIN_ROOT}/references/commit-rules.md` for the dedup marker, idempotency, status heuristic, assignee resolution, and task shape.
