@@ -38,8 +38,10 @@ description).
   participants/team filter — e.g. "only meetings with the automation team"), renders the same
   tables, then asks **"add to ClickUp / fix anything?"**.
 
-The run model is detected via a TTY probe; the ClickUp write also sits behind an `AskUserQuestion`
-gate, so a scheduled session physically can't reach it.
+The run model is detected from explicit signals (an explicit mode/window param, a scheduler/cron
+context, or the morning window), failing closed to scheduled/read-only when unsure — a TTY probe is
+only a corroborating hint, never the sole determinant. The ClickUp write also sits behind an
+`AskUserQuestion` gate, so a scheduled session physically can't reach it.
 
 ## Edit + push (manual only)
 Reply with task numbers and edit-by-exception, then `push to ClickUp`:
@@ -75,8 +77,13 @@ idempotency marker; already-committed rows are skipped).
 - **Scheduled runs never prompt and never write.** Idempotent re-runs (marker-first dedup).
 
 ## Layout
+Root-SKILL layout (this is what registers the clean bare `/daily-call-tasks` instead of the
+doubled `/daily-call-tasks:daily-call-tasks`). The `SKILL.md` sits at the plugin ROOT — there is
+deliberately NO `skills/<name>/` subdir and NO `commands/<name>.md` wrapper; do not "restore" them.
 ```
-skills/
-  daily-call-tasks/   SKILL.md  references/{extraction.md, commit-rules.md}
-commands/             daily-call-tasks.md
+daily-call-tasks/
+  SKILL.md
+  references/{extraction.md, commit-rules.md}
+  .claude-plugin/plugin.json
+  README.md  QUICKSTART.md
 ```

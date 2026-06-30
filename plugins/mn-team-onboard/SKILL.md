@@ -1,5 +1,6 @@
 ---
 name: mn-team-onboard
+user-invocable: true
 description: >
   Onboard a new team to the MN Service (Meeting Notes) n8n pipeline from minimal input —
   a team tag and a parent Google Drive folder link (Slack channel optional). The assistant

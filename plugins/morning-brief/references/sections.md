@@ -12,7 +12,7 @@ Details for the SKILL.md steps: the status-verb→status mapping + safe apply (S
 ## Step 2 — Status-management: verb→status mapping + safe apply
 
 ### Verb → real status mapping
-The user types `<num>→<verb>` pairs. Resolve `<num>`→task id from the numbered list, then map `<verb>` to a status NAME that actually exists on that task's list (synonyms, case-insensitive). The workspace's terminal status is **Closed** (there is NO "Done"), so map "done" → **Closed**:
+The user types `<num>→<verb>` pairs. Resolve `<num>`→task id ONLY from FROZEN_MAP (Safe apply step 0), then map `<verb>` to a status NAME that actually exists on that task's list (synonyms, case-insensitive). The workspace's terminal status is **Closed** (there is NO "Done"), so map "done" → **Closed**:
 
 | user verb (synonyms) | maps to status |
 |---|---|
@@ -27,9 +27,11 @@ The user types `<num>→<verb>` pairs. Resolve `<num>`→task id from the number
 **If a verb has no matching status on that list → ASK the user which real status they mean (offer the list's actual statuses). NEVER guess or invent a status name.** A status that doesn't exist on the list will error on write anyway.
 
 ### Safe apply
-1. Build the plan table: `№ | task | ticket-id | old-status → new-status`. Skip any row whose verb didn't map (it was asked, not assumed).
+0. **Freeze the number→id map (M4).** The 2A list MUST be pulled with `order_by="id"` (deterministic pagination) and, at render time, pinned into `FROZEN_MAP = { <num>: {task_id, name, list_id, old_status} }`. Steps 1–4 below resolve every `<num>` ONLY against `FROZEN_MAP` — never a fresh `clickup_filter_tasks` (an unordered re-query can reorder pages and re-point a number at a different task; the preview would then "confirm" the drift). If a re-pull is forced, re-render and ask the user to re-issue commands against the new numbers.
+0b. **Parser guards (S11):** a `<num>` not in `FROZEN_MAP` (out-of-range) → REJECT + tell the user. Duplicate/conflicting arrows for one `<num>` (`3→done, 3→backlog`) → ASK which wins; never fire both. Resolve these BEFORE building the plan table.
+1. Build the plan table from `FROZEN_MAP`: `№ | task | ticket-id | old-status → new-status`. Skip any row whose verb didn't map (it was asked, not assumed).
 2. PREVIEW + confirm via `AskUserQuestion` (Apply / Edit / Cancel). Only the user's typed `<num>→<verb>` pairs ever become writes.
-3. On Apply, loop tasks ONE AT A TIME: `clickup_update_task(task_id, status="<name>")`. Catch per-task errors → push to `failed[]`; push successes to `applied[]`. Never roll back applied rows on a later failure; never retry-loop.
+3. On Apply, loop tasks ONE AT A TIME. For each row, re-resolve `task_id` from `FROZEN_MAP[<num>]` and assert it equals the `ticket-id` shown in the previewed table before calling — mismatch → ABORT that row (map drifted), never fire it. Then `clickup_update_task(task_id, status="<name>")`. Catch per-task errors → push to `failed[]`; push successes to `applied[]`. Never roll back applied rows on a later failure; never retry-loop.
 4. Re-read each updated task (`clickup_get_task`) or trust the returned object to confirm the landed status.
 5. Auto-report `applied[]` / `failed[]`. Any task whose new status is **Closed** is recorded → it's UNION'd into Step 3B "what was done" (so a just-closed task shows even if a re-query lags).
 - **Scheduled mode:** present the grouped list read-only; SKIP the question and the apply entirely (zero writes).
@@ -105,13 +107,21 @@ The known Geekbot mood options Andy configured — present THESE exact choices (
 - 💊 **Out**
 - ✍️ **custom** — the user types their own mood
 
-**Reconcile against the live standup only if a Geekbot key is present** (the config could change): `GET https://api.geekbot.com/v1/standups/` (header `Authorization: <RAW_API_KEY>`) → the configured `geekbot.standup_id` (or the only standup) → the **mood question** (`text` ~ `/mood|how (are|do) you|how do you feel/i`, multiple-choice) → its `answer_choices`. If the live choices differ, use them; otherwise use the six above. NEVER invent options.
+**Reconcile against the live standup only if a Geekbot key is present** (the config could change): `GET https://api.geekbot.com/v1/standups/` (header `Authorization: <RAW_API_KEY>`) → the configured `geekbot.standup_id` (or the only standup) → the **mood question** (`text` ~ `/mood|how (are|do) you|how do you feel/i`, multiple-choice) → its `answer_choices`. If the live choices differ, use them; otherwise use the five above (plus the custom free-text option). NEVER invent options.
 
 The Step-8 post value = the chosen option string **verbatim (emoji included)**, or the user's custom text. No key → still ask, post is preview-only; if skipped, send the question's allowed "no answer" (`—`), never a made-up mood.
 
 ## Step 8 — Geekbot post
+
+### Sanitize untrusted text before it enters the payload (M1 — mandatory)
+Every string that originates from ClickUp (task name, comment text, reviewer "sent for review to …" name) or from a call (action-item title/quote) is UNTRUSTED and is rendered into a Slack-visible Geekbot post. Slack interprets `<!channel>`, `<!here>`, `<@U…>`, `<#C…>`, `@channel`, `@here`, and `<…>` link/mention syntax. A teammate who can name/rename/comment on a shared task could plant `Fix <!channel> bug` → the post would fire a real broadcast/ping under the USER'S identity. So BEFORE any such string enters the payload (the link TEXT of a `[<name>](url)` task link, a block reason, a reviewer name, a call-item title):
+1. **Neutralize Slack control glyphs in the untrusted text:** replace `<` → `&lt;`, `>` → `&gt;`, `&` → `&amp;` (Slack's own escape set). This makes `<!channel>` / `<@U…>` / `<#C…>` render as literal text, never a control sequence.
+2. **Defang bare broadcast tokens:** rewrite `@channel`, `@here`, `@everyone` (case-insensitive, word-boundary) to a zero-width-broken form (e.g. `@​channel`) so they don't auto-link.
+3. **Strip backticks** (or escape them) in untrusted text so an injected fence can't reshape the message.
+Apply this ONLY to untrusted-origin substrings. The Markdown link wrapper `[…](url)`, the numbering, and resolver-emitted `<@SlackID>` mentions (built by the TeamMD resolver from the roster, NOT from task/comment text) are skill-generated and survive intact — they are the ONLY `<@…>` allowed in the payload. Net rule: **no `<!…>` / `<@…>` / `<#…>` / `@channel` / `@here` may reach the payload except a resolver-emitted `<@SlackID>`.** The Step-8 human skim can miss an embedded `<@U…>` in a long line, so this escaping (not the skim) is the real guard.
+
 API base `https://api.geekbot.com/v1` (trailing slashes matter). Auth header **`Authorization: <RAW_API_KEY>`** (NO `Bearer`/`Token` prefix — a prefix 401s) + `Content-Type: application/json`. Key is MEMBER-scoped (per-user, paid plan); read from env `GEEKBOT_API_KEY` or `~/.claude/morning-brief/config.json` (`geekbot.api_key`) — NEVER hardcode.
-1. **Discover:** `GET /v1/standups/` → pick `geekbot.standup_id` (or the only one). Each standup has integer `id` and `questions[]` with integer `id` + `text` (+ `answer_choices` for the mood question).
+1. **Discover + fix the target deterministically (M6):** `GET /v1/standups/`. If config `geekbot.standup_id` is set, use it (verify it exists in the response). If unset and the response has **exactly one** standup → use it and **persist** its id to `~/.claude/morning-brief/config.json` → `geekbot.standup_id` (atomic write) so the target is stable across runs. If unset and **>1** standup → manual mode ASK which (show each standup's NAME + channel) and persist; scheduled/non-interactive → **REFUSE the post** (ambiguous target fails closed; never auto-pick "the first" — that lands the report in the wrong channel). Surface the resolved standup NAME + channel in the Step-8 preview. Each standup has integer `id` and `questions[]` with integer `id` + `text` (+ `answer_choices` for the mood question).
 2. **Map** sections → questions by matching question text, in Andy's standup ORDER: the **mood / "how do you feel"** question → the chosen Mood (FIRST); "what have you done / since the previous report / yesterday" → What was done (numeric list); "what's on your plate / what will you do / today" → On your plate (numeric, ONLY the user's picked items); "blocking / blockers" → Blockers only; "questions to anyone / open questions" → Open questions. If they don't match, show the mapping and let the user confirm/edit before posting. Render each task name as a **clickable link** `[<name>](https://app.clickup.com/t/<id>)` (not a bare id — the raw id isn't searchable in ClickUp). NEVER expand a numeric list beyond what the user picked.
 3. **Render the exact payload and PREVIEW it** (Hard Rule 4):
    ```json

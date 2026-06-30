@@ -52,9 +52,8 @@ Install any subset:
 .claude-plugin/marketplace.json   # marketplace manifest — the CANONICAL plugin list
 plugins/<name>/
   .claude-plugin/plugin.json      # plugin manifest (+ command/requirements for the README table)
-  skills/<name>/SKILL.md          # the skill (folder name = invocation token); a plugin may ship several
-  commands/<name>.md              # thin slash-command wrapper → registers the clean /<name>
-  references/ | scripts/ | config/ # supporting files (where applicable)
+  SKILL.md                        # the skill at the plugin ROOT (name: <name>, user-invocable: true) → registers the bare /<name>
+  references/ | scripts/ | config/ # supporting files beside SKILL.md (where applicable)
 scripts/gen-readme.mjs            # regenerates this README's plugin table from the manifests
 .github/workflows/readme.yml      # CI: runs gen-readme on every push, auto-commits the result
 ```
