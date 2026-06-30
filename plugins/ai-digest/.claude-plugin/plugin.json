@@ -1,7 +1,7 @@
 {
   "name": "ai-digest",
-  "version": "0.3.1",
-  "description": "Drafts a weekly cross-department AI-Automation digest (top-3 closed / in-progress / priorities) from the department's own meeting-notes (primary narrative) + ClickUp (the dated 'what closed' signal). Notes-led, every line cited, print-only \u2014 a human edits the draft and the lead publishes. Read-only against Drive + ClickUp; makes NO 'verified' claims (the citation is the honesty). Geekbot is an OPTIONAL enrich-only 3rd source (OFF unless a key is configured): it corroborates existing lines + adds a labelled 'From standups (unverified)' lane, never originates a theme or a 'Closed' item. Scaffold patterns adapted from Sasha Marchuk's log-time + the sibling daily-call-tasks skill.",
+  "version": "0.3.2",
+  "description": "Drafts a weekly cross-department AI-Automation digest (top-3 closed / in-progress / priorities) from the department's own meeting-notes (primary narrative) + ClickUp (the dated 'what closed' signal). Notes-led, every line cited, print-only — a human edits the draft and the lead publishes. Read-only against Drive + ClickUp; makes NO 'verified' claims (the citation is the honesty). Geekbot is an OPTIONAL enrich-only 3rd source (OFF unless a key is configured): it corroborates existing lines + adds a labelled 'From standups (unverified)' lane, never originates a theme or a 'Closed' item. Scaffold patterns adapted from Sasha Marchuk's log-time + the sibling daily-call-tasks skill.",
   "command": "`/ai-digest`",
   "requirements": "**ClickUp MCP** + a **Google Drive** connector. Optional **Geekbot** key enables the enrich-only 3rd source.",
   "author": {
