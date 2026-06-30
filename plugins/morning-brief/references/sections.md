@@ -41,9 +41,9 @@ The user types `<num>→<verb>` pairs. Resolve `<num>`→task id ONLY from FROZE
 ### Closed in the window (exact)
 `clickup_filter_tasks(assignees=[me], include_closed=true, date_closed_from=<computed bound>, date_closed_to=<now>)`.
 
-**The asked period BINDS the bound (S1):** `date_closed_from = max(asked-period-start, prior-snapshot date)`.
-- A WIDER asked period (e.g. "this week", `7d`) MUST NOT silently collapse to the last-snapshot gap → when `asked-period-start < prior-snapshot date`, use `asked-period-start`.
-- A NARROWER asked period MUST NOT be ignored, AND the snapshot-diff gap must still reconcile → when `asked-period-start > prior-snapshot date`, use `prior-snapshot date` (so a task closed during a weekend/gap reconciles against the snapshot-diff instead of being mislabeled "no longer on your plate").
+**Compute the bound so a weekend is never dropped (weekend fix):**
+- **No EXPLICIT period typed** (scheduled, or the manual "since last brief" default) → `date_closed_from = prior-snapshot date` (the gap since the last run). Do NOT let an implicit "yesterday" raise the floor — on a Monday that becomes Sunday and silently drops Saturday's closures.
+- **An EXPLICIT period was typed** → `date_closed_from = asked-period-start` — honored LITERALLY, NO clamp. A narrower explicit period is respected for this query; a weekend/gap closure outside it is re-surfaced by the snapshot-diff via the task's current status (below), not by widening this floor.
 - **First run / missing or corrupt snapshot (S2):** no prior-snapshot date → `date_closed_from = asked-period-start`; if NO period was asked, bound to the **last 24h**. **NEVER leave `date_closed_from` undefined** — an undefined bound makes `clickup_filter_tasks` pull the entire all-time closed history and mislabel it as "done".
 
 `date_closed` fires for the terminal **Closed** status. The section label is "since `<date_closed_from>`" (the computed bound), never a hardcoded "yesterday". **UNION the ids the user just moved to Closed in Step 2C** — a just-applied close may not be reflected in this query yet, and surfacing it is the whole point ("did the work, forgot to update ClickUp").
@@ -57,9 +57,9 @@ State file: `~/.claude/morning-brief/snapshot-<YYYY-MM-DD>.json` (date key in us
 - **Capture set:** the user's NON-closed tasks (`clickup_filter_tasks(assignees=[me], include_closed=false)`, paginated). Write it at the END of every full run (Step 8).
 - **Diff:** load the most recent snapshot whose date is **< today** (NOT today's fresh write — so a same-day re-run still diffs against the prior day). For each task:
   - in both, status changed → classify the NEW status: `→ in progress` = "worked on, not finished"; `→ in review` = "sent for review".
-  - in prior snapshot but GONE from today's open set → closed or reassigned. **Reconcile against the closed-in-window result (and Step 2C's just-closed set):** id present there → "closed"; else "no longer on your plate" (do not claim done).
+  - in prior snapshot but GONE from today's open set → closed or reassigned. **Reconcile:** id present in the closed-in-window result (or Step 2C's just-closed set) → "closed"; ELSE read the departed task's CURRENT status (`clickup_get_task`) — a terminal **Closed** status → "closed since your last brief"; otherwise "no longer on your plate" (do not claim done). This current-status read covers BOTH a closure that fell outside a narrow explicit window AND a **date-blind connector** (Step 0 probe, where the closed-in-window result is empty by construction) — so the day's real closures never vanish; footer-caveat that such closures are snapshot-inferred ("per status, not date-pinned").
   - new in today's set, not prior → a *new* task (belongs to "plate", not "done").
-- **Window label:** "since `<date_closed_from>`" — the computed bound `max(asked-period-start, prior-snapshot date)` (S1), or `asked-period-start`/last-24h on first run (S2); the prior snapshot may be older than yesterday after a weekend/skip; never hardcode "yesterday".
+- **Window label:** "since `<date_closed_from>`" — the computed bound (the prior-snapshot gap-floor by default, or `asked-period-start` when an explicit period was typed; `asked-period-start`/last-24h on first run, S2); the prior snapshot may be older than yesterday after a weekend/skip; never hardcode "yesterday".
 - **First run / no prior snapshot (or a corrupt/unparseable snapshot):** print "baseline captured — status changes will show from the next run", and still emit the closed-in-window result + Step 2C closes — but bind that closed-in-window query by `date_closed_from = asked-period-start` (or the last 24h if no period was asked), NEVER an undefined bound (S2).
 - **Multi-hop within a day** (To-Do→In Progress→Review same day) → only endpoints are seen. Documented limitation; fine for a standup.
 - **Retention:** keep the last ~14 snapshots; prune older.
@@ -71,9 +71,9 @@ For each task classified `→ in review`: `clickup_get_task_comments(task_id)` �
 The Step-1 call-items are deduped against the user's OPEN tasks so only genuinely un-ticketed items get the "⟂ not yet in ClickUp" flag.
 1. **Marker-first.** Items previously ticketed via `daily-call-tasks` carry a hidden marker in the ClickUp task description:
    ```
-   <!-- dca:<workspace_id>:<list_id>:<assignee_id>:<source_doc_id>:<action-key> -->
+   <!-- dca:<workspace_id>:<list_id>:<source_doc_id>:<call_date>:<action-key> -->
    ```
-   `action-key` hashes a STABLE locator (`source_doc_id` + Action-Points heading + line ordinal), not prose. Enumerate the user's open tasks (`clickup_filter_tasks(include_closed=false)`), READ each description, and if a candidate's `<source_doc_id>:<action-key>` matches a marker on an open user-owned task → **already ticketed, drop it**. (`clickup_filter_tasks` can't filter description bodies — match by reading fetched descriptions, or `clickup_search` the marker string then intersect.)
+   This is the CANONICAL marker `daily-call-tasks` actually writes (5 components — no `assignee_id`; `call_date` = the call's start date so a recurring call reusing one Doc across weeks doesn't false-match). `action-key` hashes a STABLE locator (`source_doc_id` + the item's `section` + `item_anchor` — **NOT a line ordinal**, not prose). Enumerate the user's open tasks (`clickup_filter_tasks(include_closed=false)`), READ each description, and if a candidate call-item's `(source_doc_id, call_date, action-key)` matches a `dca:` marker on an open user-owned task → **already ticketed, drop it**. (`clickup_filter_tasks` can't filter description bodies — match by reading fetched descriptions, or `clickup_search` the marker string then intersect.)
 2. **Jaccard fallback** (pre-existing human tasks, no marker): casefold + NFKC title tokens, drop stopwords, `|A∩B|/|A∪B| ≥ 0.70` against the same open set → treat as already-on-plate, drop the "not yet ticketed" flag.
 3. Closed tasks and tasks not assigned to the user are NEVER matched → a resembling call item stays flagged as new.
 This mirrors `daily-call-tasks`'s dedup so the two skills agree on "already ticketed".
