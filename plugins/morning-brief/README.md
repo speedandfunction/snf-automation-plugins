@@ -17,7 +17,7 @@ no cross-plugin imports.
 4. **On your plate today** — current **In Progress + To-Do** (+ not-yet-ticketed call items, flagged `⟂ not yet in ClickUp`), numbered. You pick which to report (`1,3,7`) — to-dos are a weekly bucket, not all for today.
 5. **Blockers WITH the reason** — *"`<task>` is blocked because `<reason>`"* (from the status / the comment recorded when it was blocked); you can add extra reasons.
 6. **Open questions** — your own, and to whom (resolved to `<@SlackID>` via a `team.md` roster).
-7. **Mood** — picked from your standup's **real Geekbot mood options** (read live from the Geekbot API), not invented defaults.
+7. **Mood** — picked from your standup's **real Geekbot mood options** when a Geekbot key is connected (read live from the Geekbot API); otherwise a sensible default set (the five Andy configured), never invented per-run.
 8. **Post to Geekbot** — preview the exact payload, then post (→ Slack), with each task's ClickUp ticket id kept for quick search.
 
 ```text
@@ -39,11 +39,17 @@ No flags: setup (identity + dependencies) is **transparent on first run**; a **s
 - **Never creates/edits** ClickUp task name/description/assignee here (that's `daily-call-tasks`) — the only ClickUp write is the status change you command.
 
 ## Layout
+This is a **root-SKILL plugin** — `SKILL.md` sits at the plugin root (no `skills/` subdir, no `commands/` wrapper), so it resolves as the clean bare command `/morning-brief` (frontmatter `user-invocable: true`), NOT a namespaced `/morning-brief:morning-brief`. Do not "restore" a `skills/` + `commands/` tree — that re-breaks bare invocation.
 ```
-skills/
-  morning-brief/   SKILL.md  references/{onboarding,extraction,sections}.md
-commands/          morning-brief.md
+morning-brief/
+  SKILL.md                       # root skill, user-invocable: true, no commands/ wrapper
+  .claude-plugin/plugin.json     # plugin manifest
+  README.md
+  references/
+    onboarding.md
+    extraction.md
+    sections.md
 ```
 - `references/onboarding.md` — the self-contained identity wizard + atomic/flock write helper.
-- `references/extraction.md` — morning-brief's own copy of the Sonnet call-extraction primitives.
-- `references/sections.md` — status-verb→status mapping + safe apply, snapshot-diff "what was done", plate dedup, block-reason derivation, the TeamMD resolver, the real-Geekbot-mood read, and the Geekbot payload.
+- `references/extraction.md` — morning-brief's own copy of the Sonnet call-extraction primitives (rules are inlined into each sub-agent prompt at spawn time).
+- `references/sections.md` — status-verb→status mapping + safe apply (frozen number→id map), snapshot-diff "what was done", plate dedup, block-reason derivation, the TeamMD resolver, the real-Geekbot-mood read, the payload sanitizer, and the Geekbot payload.

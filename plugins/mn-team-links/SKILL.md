@@ -1,5 +1,6 @@
 ---
 name: mn-team-links
+user-invocable: true
 description: >
   Resolve an MN Service (Meeting Notes) team to its Google Drive transcript folder
   link, so the assistant can answer "where are team X's transcripts / notes?" from a
