@@ -71,9 +71,9 @@ For each task classified `→ in review`: `clickup_get_task_comments(task_id)` �
 The Step-1 call-items are deduped against the user's OPEN tasks so only genuinely un-ticketed items get the "⟂ not yet in ClickUp" flag.
 1. **Marker-first.** Items previously ticketed via `daily-call-tasks` carry a hidden marker in the ClickUp task description:
    ```
-   <!-- dca:<workspace_id>:<list_id>:<assignee_id>:<source_doc_id>:<action-key> -->
+   <!-- dca:<workspace_id>:<list_id>:<source_doc_id>:<call_date>:<action-key> -->
    ```
-   `action-key` hashes a STABLE locator (`source_doc_id` + Action-Points heading + line ordinal), not prose. Enumerate the user's open tasks (`clickup_filter_tasks(include_closed=false)`), READ each description, and if a candidate's `<source_doc_id>:<action-key>` matches a marker on an open user-owned task → **already ticketed, drop it**. (`clickup_filter_tasks` can't filter description bodies — match by reading fetched descriptions, or `clickup_search` the marker string then intersect.)
+   This is the CANONICAL marker `daily-call-tasks` actually writes (5 components — no `assignee_id`; `call_date` = the call's start date so a recurring call reusing one Doc across weeks doesn't false-match). `action-key` hashes a STABLE locator (`source_doc_id` + the item's `section` + `item_anchor` — **NOT a line ordinal**, not prose). Enumerate the user's open tasks (`clickup_filter_tasks(include_closed=false)`), READ each description, and if a candidate call-item's `(source_doc_id, call_date, action-key)` matches a `dca:` marker on an open user-owned task → **already ticketed, drop it**. (`clickup_filter_tasks` can't filter description bodies — match by reading fetched descriptions, or `clickup_search` the marker string then intersect.)
 2. **Jaccard fallback** (pre-existing human tasks, no marker): casefold + NFKC title tokens, drop stopwords, `|A∩B|/|A∪B| ≥ 0.70` against the same open set → treat as already-on-plate, drop the "not yet ticketed" flag.
 3. Closed tasks and tasks not assigned to the user are NEVER matched → a resembling call item stays flagged as new.
 This mirrors `daily-call-tasks`'s dedup so the two skills agree on "already ticketed".
