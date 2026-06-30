@@ -43,8 +43,20 @@ Minimal valid file (self-record uses the same email as `user.email`):
 Run this via `Bash python3 - <<'PY' … PY`. It is stdlib-only and matches the plugins' `atomic_update` contract: hold `flock` on `~/.claude/shared/identity.json.lock`, read-modify-write, round-trip unknown keys, upsert teammates by email, atomic `os.replace`.
 
 ```python
-import json, os, fcntl, tempfile, time
+import json, os, tempfile, time
 from datetime import datetime, timezone
+
+# Cross-platform lock (S12): fcntl is POSIX-only — on Windows CPython `import fcntl`
+# raises ModuleNotFoundError, which would abort onboarding and leave the plugin
+# permanently read-only there. Guard the import; if unavailable, skip locking.
+# (S&F is a Darwin/Linux shop, so on the realized audience the flock path always runs;
+# this guard only prevents a hard crash if the helper is ever run on Windows.)
+try:
+    import fcntl
+    _HAVE_FLOCK = True
+except ImportError:
+    fcntl = None
+    _HAVE_FLOCK = False
 
 HOME = os.path.expanduser("~")
 DIR  = os.path.join(HOME, ".claude", "shared")
@@ -65,7 +77,10 @@ SELF_TEAMMATE = {
 DISCOVERED = []  # optional list of teammate dicts from Step 4
 
 with open(LOCK, "w") as lk:
-    fcntl.flock(lk, fcntl.LOCK_EX)         # cross-plugin mutual exclusion; kernel frees on death
+    if _HAVE_FLOCK:
+        fcntl.flock(lk, fcntl.LOCK_EX)     # cross-plugin mutual exclusion; kernel frees on death
+    # else (Windows / no fcntl): no cross-process lock — the atomic os.replace below
+    # still makes the write itself atomic; only the cross-plugin mutual exclusion is lost.
     base = {}
     if os.path.exists(PATH):
         try:
