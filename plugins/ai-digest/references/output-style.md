@@ -24,7 +24,8 @@ Each top-3 line should answer three things — outcome, who-outside-AUT, what-ch
 `date_closed` means *a card was closed*, not *a product shipped*. Banned as the verb on cards whose name/list/so-what is research, review, or housekeeping:
 
 - **Deny `shipped` / `delivered` / `launched` / `released`** when the underlying task is a `Research…`, `Investigate…`, `Spike…`, `Review…`, `Sync…`, `Evaluate…`, `Audit…`, or other non-shipping card. Use `researched`, `evaluated`, `reviewed`, `decided`, `unblocked` instead.
-- Keep `shipped/launched` only for tasks that genuinely put something into production / in front of users.
+- **Also deny the multi-word "it's live now" phrasings** that slip past a single-word scan — `rolled out`, `went live`, `shipped to prod`, `in production` / `in production now`, `deployed to prod` / `deployed`, `GA'd`, `cut over` / `cutover` — on those same non-shipping cards. A two-word phrase is exactly as much of a false-shipment claim as `shipped`; lint the whole line text, not just the first verb.
+- Keep `shipped/launched`/`rolled out`/`went live` only for tasks that genuinely put something into production / in front of users. (The Research/Investigate/Spike/Review/Sync/Evaluate/Audit/housekeeping carve-out is unchanged — those cards never get a ship-vocab verb regardless of phrasing.)
 - An empty `<who outside AUT>` slot on a Closed line → demote it from the reader top-3 (it's internal plumbing; keep it in the editor file).
 
 ## Honest misses

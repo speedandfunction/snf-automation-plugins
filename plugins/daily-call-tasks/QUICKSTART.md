@@ -12,7 +12,14 @@ A primitive "how to launch it" — paste the block at the bottom into your team 
 ## Connect (once)
 1. Connect **Google Calendar** + **Google Drive** at `claude.ai/customize/connectors`.
 2. For the ClickUp push, connect the **ClickUp** connector too.
-3. Make sure per-call sub-agents run on **Sonnet** (`CLAUDE_CODE_SUBAGENT_MODEL=claude-sonnet-4-6`).
+3. Make sure per-call sub-agents run on **Sonnet** — this env var is a HARD requirement. In the shell
+   that launches Claude Code (Mac/Linux/Git-Bash):
+   ```bash
+   export CLAUDE_CODE_SUBAGENT_MODEL=claude-sonnet-4-6
+   ```
+   (add it to `~/.zshrc` / `~/.bashrc` to persist; Windows PowerShell:
+   `$env:CLAUDE_CODE_SUBAGENT_MODEL = "claude-sonnet-4-6"`). Verify: `echo $CLAUDE_CODE_SUBAGENT_MODEL`
+   prints `claude-sonnet-4-6`.
 
 ## Use it
 ```text
@@ -38,8 +45,11 @@ don't duplicate).
 
 ## Optional
 - A transcript notetaker (Sembly) — promoted automatically when a Meeting Notes doc 403s.
-- `~/Work/team.md` / `~/.claude/shared/identity.json` — used to resolve a team name to its members
-  (for the participants filter and team-assign).
+- **`~/.claude/shared/identity.json` `teammates[]` (PRIMARY)** — the portable roster (shared with
+  `/morning-brief` and `/clickup`) used to resolve a team name to its members for the participants
+  filter and team-assign. **`~/Work/team.md` is a FALLBACK** for the author's local machine; a public
+  install resolves teams from identity.json. (A cross-person create only ever uses a member from the
+  filter you chose or a name you type, never a teammate named only inside the notes doc.)
 
 ---
 

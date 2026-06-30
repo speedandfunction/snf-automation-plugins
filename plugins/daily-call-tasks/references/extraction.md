@@ -7,7 +7,7 @@ This one skill replaces the former two (`daily-call-tasks` read-only digest + `d
 ## Kept from find-call
 - Calendar-as-index discovery of the user's events.
 - "Meeting Resources" block parsing → Meeting Notes Doc export.
-- Optional notetaker (Sembly) augment in parallel.
+- Optional notetaker (Sembly) augment in parallel — but only a Drive-Doc-form transcript is readable by the per-call sub-agent (see Provider fallback / citation allow-list).
 - Sonnet sub-agent per call to read notes/transcript and return cited action items.
 - Anti-slop rules: cite everything; never invent; read-only; sonnet-only; never WebFetch Google URLs.
 
@@ -37,14 +37,21 @@ Description is HTML — match links, do not parse as a tree. Strip query strings
 - Drive file id: `https://drive\.google\.com/file/d/([A-Za-z0-9_-]+)`
 - Drive folder:  `https://drive\.google\.com/drive/folders/([A-Za-z0-9_-]+)`
 
-**Capture each link together with its adjacent anchor text and select by that label** — bare ids alone cannot tell the Meeting Notes doc from the transcript/video doc. The notes-bot block typically labels links `Transcription` (sometimes `This Call` / `Project Calls`), `Meeting Notes`, `Video`, `Parent Folder`. Route only the **`Meeting Notes`**-labeled doc to extraction; pass a `Transcription`-labeled doc as the optional transcript; **skip `Video`** (binary; not transcribed here). **If the `Meeting Notes` doc is inaccessible (403/not-found) or absent, PROMOTE the `Transcription` doc (or a connected Sembly transcript) to be that call's extraction source** — notes-bot docs are often owned by the bot/team and 403 for the running account.
+**Capture each link together with its adjacent anchor text and select by that label** — bare ids alone cannot tell the Meeting Notes doc from the transcript/video doc. The notes-bot block typically labels links `Transcription` (sometimes `This Call` / `Project Calls`), `Meeting Notes`, `Video`, `Parent Folder`. Route only the **`Meeting Notes`**-labeled doc to extraction; pass a `Transcription`-labeled doc as the optional transcript; **skip `Video`** (binary; not transcribed here). **If the `Meeting Notes` doc is inaccessible (403/not-found) or absent, PROMOTE the `Transcription` Drive Doc to be that call's extraction source** (pass its fileId to the sub-agent) — notes-bot docs are often owned by the bot/team and 403 for the running account. A connected Sembly transcript can be promoted **only if it exposes a Drive Doc fileId** the sub-agent's `read_file_content` can open; a Sembly source reachable only by meeting id is NOT readable by the sub-agent (see Provider fallback below) → treat that call as `no accessible notes/transcript`.
 
 ## Meeting Notes sections
 Typical Markdown/Doc structure: `Topic:`, `Date:`, `Short Summary`, `Key Discussion Points`, `Action Points` (often per attendee), `Meeting Resources`. For action-item extraction the `Action Points` section keyed to `{user.name}` is the highest-signal source; quote it verbatim and cite the Doc URL + that section heading.
 
 ## Scope: whose items (self vs team-pull)
-- **Default (scheduled, or a plain manual run):** extract items owned by `{user.name}`.
-- **Team-pull (manual only):** when the user asks "pull everyone's / my team's tasks from this call", the orchestrator passes `PARTICIPANTS=<names>` to the sub-agent, which then ALSO extracts items owned by those named people — each with its real owner in the **assignee** field. Being in the room ≠ owning the item: only emit an owner the source actually names; otherwise the owner is `{user.name}`. Never invent an owner.
+- **Default (scheduled, or a plain manual run):** `SCOPE=self` → extract items owned by `{user.name}`.
+- **Team-pull (manual only):** when the user asks "pull everyone's / my team's tasks from this call", the orchestrator resolves the user's participants/team filter to `FILTER_MEMBERS` (SKILL.md Step 1–2) and — ONLY then (`SCOPE=team`) — passes those names as `PARTICIPANTS=<names>` to the sub-agent, which then ALSO extracts items owned by those named people — each with its real owner in the **assignee** field. **The filter is the load-bearing wire:** if `PARTICIPANTS` is not passed, the sub-agent runs self-only — so the team-digest only fires when the Step-1 filter actually flows into the Step-4 hand-off. Being in the room ≠ owning the item: only emit an owner the source actually names; otherwise the owner is `{user.name}`. Never invent an owner.
+- **Cross-person CREATE is gated separately (commit-rules.md):** a doc-named teammate is shown in the table but is NOT auto-eligible for a cross-person ClickUp create — only the user-chosen `FILTER_MEMBERS` or a user-typed `assignee N:` authorizes that. A poisoned notes doc must never fan fabricated tasks out to real teammates.
+
+## Team-roster resolution (portable — PRIMARY vs FALLBACK)
+Resolve a named team/person to members in this order, matching `/morning-brief` and `/clickup`:
+- **PRIMARY: `~/.claude/shared/identity.json` `teammates[]`** — the portable, cross-plugin roster every install can carry (each teammate has name/email; read-only, never written here).
+- **FALLBACK: `~/Work/team.md`** — the author's local roster file; present only on a machine that has it (a public installer will not). Used only when identity.json does not resolve the name.
+- Neither resolves → say so and fall back to **no filter** (process the whole attended set) rather than silently dropping every event.
 
 ## Per-item fields (priority / deadline / assignee / description)
 For EACH extracted action item the sub-agent ALSO returns two dedup-locator fields (always, NOT "only if voiced"): **`section`** = the exact `Action Points` (or equivalent) heading/sub-heading the item sits under (or `transcript` for a heading-less transcript), and **`item_anchor`** = a content-stable normalized identity of the item (the verb + object, lowercased, no dates/filler, NO line number). The orchestrator hashes `source_doc_id + section + item_anchor` into the marker `action-key` (see `commit-rules.md`) — this is why the key survives a re-order/re-numbering of the notes list where a line-ordinal key would not.
@@ -66,6 +73,6 @@ These become the Priority / Status / Deadline / Assignee / Description columns o
 Per source, try the present provider first, fall back to the other; only fail a source if every provider fails.
 - Calendar: `mcp__*Google_Calendar*__list_events`  ⇄  `npx @googleworkspace/cli calendar events list`
 - Docs:     **PRIMARY** the Drive connector `read_file_content(fileId)` — returns the Doc text directly (no export, no `mimeType`); the ONLY working path in a cloud routine.  ⇄  LOCAL-ONLY fallback `npx @googleworkspace/cli drive files export --params '{"fileId":"<id>","mimeType":"text/plain"}' --output ./.tmp/daily-call-tasks/<id>.txt` then `Read` (this writes a local scratch file — gitignored; the connector path writes nothing).
-- Transcripts (optional): `mcp__sembly-ai__*` or any connected notetaker; skip silently if none.
+- Transcripts (optional): `mcp__sembly-ai__*` or any connected notetaker; skip silently if none. **The per-call sub-agent's ONLY read primitive is `read_file_content(fileId)`** — it can read a Drive-form `Transcription` Doc by fileId but has NO tool to read a notetaker/Sembly transcript by meeting id. So a Sembly source is usable for extraction ONLY if it yields a Drive Doc fileId; a meeting-id-only source is unreadable by the sub-agent → that call is `no accessible notes/transcript`, and the sub-agent must NOT fabricate a "transcript line" citation it never opened (citation allow-list = sources it actually read; SKILL.md Hard Rule 2).
 
 In a **cloud routine** the claude.ai connectors are the available, pre-authed path (the local `npx` CLI is typically NOT authed there). Locally the CLI may be the faster path. Detect, don't assume.
