@@ -4,7 +4,7 @@
 # references, and that no secret is committed. Pure grep — makes no live API calls.
 set -u
 DIR="$(cd "$(dirname "$0")/.." && pwd)"
-SKILL="$DIR/SKILL.md"
+SKILL="$DIR/commands/ai-digest.md"
 CUP="$DIR/references/clickup-playbook.md"
 OUT="$DIR/references/output-style.md"
 GB="$DIR/references/geekbot-playbook.md"
@@ -78,8 +78,8 @@ grep -Eqi "BROKEN" "$SKILL" && grep -Eqi "auth failed|configured but|loud-fail|n
 grep -qi "user_id" "$GB" && grep -Eqi "OMITTED|omit .user_id|all members|all participants" "$GB" && pass "geekbot: omit user_id => ALL team members in one call" || err "geekbot: must fetch all members"
 grep -qi "never committed\|LOCAL ONLY\|outside this repo\|outside .* repo" "$GB" && pass "geekbot-playbook: key is local-only / never committed" || err "geekbot-playbook: must state key is local-only"
 grep -q -- "--setup" "$SKILL" && pass "skill: --setup advertised (flags table)" || err "skill: --setup missing"
-# root-SKILL layout: SKILL.md lives at the plugin root (bare /ai-digest), no skills/ subdir, no command wrapper
-test -f "$DIR/SKILL.md" && [ ! -d "$DIR/skills" ] && [ ! -d "$DIR/commands" ] && pass "layout: root-SKILL (bare /ai-digest, no skills/ or commands/)" || err "layout: must be root-SKILL (SKILL.md at plugin root, no skills/ or commands/)"
+# COMMAND layout: commands/ai-digest.md holds the body (bare /ai-digest), no SKILL.md, no skills/ subdir
+test -f "$DIR/commands/ai-digest.md" && [ ! -f "$DIR/SKILL.md" ] && [ ! -d "$DIR/skills" ] && pass "layout: command-only (bare /ai-digest, no SKILL.md or skills/)" || err "layout: must be command-only (commands/ai-digest.md, no SKILL.md or skills/)"
 
 # interactive first-run UX (Andy feedback): setup OFFER, period confirm, connector onboarding
 grep -q "Step 1b" "$SKILL" && grep -qi "AskUserQuestion" "$SKILL" && pass "skill: Step 1b first-run setup OFFER (interactive)" || err "skill: missing Step 1b interactive setup OFFER"

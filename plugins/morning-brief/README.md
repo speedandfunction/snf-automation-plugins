@@ -39,10 +39,10 @@ No flags: setup (identity + dependencies) is **transparent on first run**; a **s
 - **Never creates/edits** ClickUp task name/description/assignee here (that's `daily-call-tasks`) — the only ClickUp write is the status change you command.
 
 ## Layout
-This is a **root-SKILL plugin** — `SKILL.md` sits at the plugin root (no `skills/` subdir, no `commands/` wrapper), so it resolves as the clean bare command `/morning-brief` (frontmatter `user-invocable: true`), NOT a namespaced `/morning-brief:morning-brief`. Do not "restore" a `skills/` + `commands/` tree — that re-breaks bare invocation.
+This is a **command plugin** — the instruction body lives in `commands/morning-brief.md`, which Claude Code registers as the clean bare command `/morning-brief` (NOT a namespaced `/morning-brief:morning-brief`). A plugin SKILL (root or `skills/<name>/`) is always namespaced; only a COMMAND is bare. Do not "restore" a `SKILL.md`/`skills/` tree — that re-breaks bare invocation.
 ```
 morning-brief/
-  SKILL.md                       # root skill, user-invocable: true, no commands/ wrapper
+  commands/morning-brief.md      # the command (instruction body) → bare /morning-brief
   .claude-plugin/plugin.json     # plugin manifest
   README.md
   references/

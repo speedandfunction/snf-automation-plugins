@@ -1,12 +1,12 @@
 ---
-name: mn-team-onboard
-user-invocable: true
+argument-hint: "<tag> <parentUrl> [slack]"
 description: >
   Onboard a new team to the MN Service (Meeting Notes) n8n pipeline from minimal input —
   a team tag and a parent Google Drive folder link (Slack channel optional). The assistant
   creates the required Drive subfolders (as notes.bot, via an n8n webhook), adds one routing
   entry to the `teamsRaw` config, self-validates, and returns a result summary. Use when
   someone says "create the team / onboard team X to Meeting Notes / add a new MN team".
+disable-model-invocation: false
 ---
 
 # MN Team Onboard

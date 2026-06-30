@@ -76,7 +76,7 @@ scripts/create-subfolders.sh <parentFolderId>
 
 | Path | Purpose |
 |------|---------|
-| `SKILL.md` | the skill definition (procedure, gates, assertions) |
+| `commands/mn-team-onboard.md` | the command body (procedure, gates, assertions) → bare /mn-team-onboard |
 | `scripts/create-subfolders.sh` | calls the n8n helper webhook |
 | `reference/teamsRaw-entry.template.js` | the single config entry template |
 | `config/.env.example` | env template (URL + token placeholder) |

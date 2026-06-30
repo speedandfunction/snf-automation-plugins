@@ -1,6 +1,5 @@
 ---
-name: mn-team-links
-user-invocable: true
+argument-hint: "[team]"
 description: >
   Resolve an MN Service (Meeting Notes) team to its Google Drive transcript folder
   link, so the assistant can answer "where are team X's transcripts / notes?" from a
@@ -8,6 +7,7 @@ description: >
   from the n8n MN Service config (the single source of truth, via the connected n8n MCP)
   and prints a compact Team → Drive-folder table. Use when someone asks for a team's
   transcript/notes folder, the link to a team's recordings, or a list of all MN teams.
+disable-model-invocation: false
 ---
 
 # MN Team Links
