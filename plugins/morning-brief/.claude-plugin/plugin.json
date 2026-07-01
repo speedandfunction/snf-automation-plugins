@@ -1,6 +1,6 @@
 {
   "name": "morning-brief",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "description": "Interactive Geekbot-style standup prep \u2014 ONE command, no flags. Runs the daily-call-tasks call extraction (Sonnet sub-agents) as a source, then walks you through: a status-management step that lists ALL your tasks grouped by status and APPLIES the status changes you command in ClickUp; what-was-done (calls + Closed + the transitions just applied); on-your-plate (you pick which to report); blockers WITH their block reason; your own open questions; and a Mood picked from your standup's real Geekbot options when a Geekbot key is connected (else a default set). Then it previews and posts the standup to Geekbot (which posts to Slack) with correct Slack mentions and each task as a clickable ClickUp link. Setup is transparent on first run. Read-only except the ClickUp status changes you command + the confirmed Geekbot post; self only; fails closed on any unresolved @mention.",
   "command": "`/morning-brief`",
   "requirements": "**Google Calendar** + **Google Drive** + **ClickUp** connectors; sub-agents on **Sonnet**. Optional: a **Geekbot** API key (auto-post), the **Gmail** connector (emails), a **team.md** roster (Slack mentions). One-time identity is created transparently on first run.",

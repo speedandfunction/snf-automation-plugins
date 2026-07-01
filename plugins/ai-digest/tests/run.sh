@@ -4,7 +4,7 @@
 # references, and that no secret is committed. Pure grep — makes no live API calls.
 set -u
 DIR="$(cd "$(dirname "$0")/.." && pwd)"
-SKILL="$DIR/commands/ai-digest.md"
+SKILL="$DIR/skills/ai-digest/SKILL.md"
 CUP="$DIR/references/clickup-playbook.md"
 OUT="$DIR/references/output-style.md"
 GB="$DIR/references/geekbot-playbook.md"
@@ -78,8 +78,8 @@ grep -Eqi "BROKEN" "$SKILL" && grep -Eqi "auth failed|configured but|loud-fail|n
 grep -qi "user_id" "$GB" && grep -Eqi "OMITTED|omit .user_id|all members|all participants" "$GB" && pass "geekbot: omit user_id => ALL team members in one call" || err "geekbot: must fetch all members"
 grep -qi "never committed\|LOCAL ONLY\|outside this repo\|outside .* repo" "$GB" && pass "geekbot-playbook: key is local-only / never committed" || err "geekbot-playbook: must state key is local-only"
 grep -q -- "--setup" "$SKILL" && pass "skill: --setup advertised (flags table)" || err "skill: --setup missing"
-# COMMAND layout: commands/ai-digest.md holds the body (bare /ai-digest), no SKILL.md, no skills/ subdir
-test -f "$DIR/commands/ai-digest.md" && [ ! -f "$DIR/SKILL.md" ] && [ ! -d "$DIR/skills" ] && pass "layout: command-only (bare /ai-digest, no SKILL.md or skills/)" || err "layout: must be command-only (commands/ai-digest.md, no SKILL.md or skills/)"
+# SKILL layout: skills/ai-digest/SKILL.md (user-invocable). Invoked /ai-digest:ai-digest (namespaced) or via natural language; no bare command exists for a marketplace plugin.
+test -f "$DIR/skills/ai-digest/SKILL.md" && [ ! -f "$DIR/SKILL.md" ] && [ ! -d "$DIR/commands" ] && pass "layout: skill (skills/ai-digest/SKILL.md, no root SKILL.md or commands/)" || err "layout: must be skills/ai-digest/SKILL.md (no root SKILL.md or commands/)"
 
 # interactive first-run UX (Andy feedback): setup OFFER, period confirm, connector onboarding
 grep -q "Step 1b" "$SKILL" && grep -qi "AskUserQuestion" "$SKILL" && pass "skill: Step 1b first-run setup OFFER (interactive)" || err "skill: missing Step 1b interactive setup OFFER"

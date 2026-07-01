@@ -101,7 +101,7 @@ and a special-character key.
 
 | Path | Purpose |
 |------|---------|
-| `commands/mn-team-links.md` | the command body (when/how to use, rules, boundaries) → bare /mn-team-links |
+| `skills/mn-team-links/SKILL.md` | the skill (when/how to use, rules, boundaries) |
 | `scripts/team-links.mjs` | CLI: parse piped node jsCode (or optional REST fetch), print the table |
 | `scripts/lib/parse-teams.mjs` | extract `teamsRaw`, build link rows |
 | `scripts/test-parse.mjs` | offline parser test |

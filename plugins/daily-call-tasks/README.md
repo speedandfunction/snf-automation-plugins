@@ -87,13 +87,10 @@ hidden idempotency marker; already-committed rows are skipped).
 - **Scheduled runs never prompt and never write.** Idempotent re-runs (marker-first dedup).
 
 ## Layout
-**COMMAND layout** — this is what registers the clean bare `/daily-call-tasks` (a plugin SKILL, root or
-`skills/<name>/`, is ALWAYS namespaced `/daily-call-tasks:daily-call-tasks`; only a COMMAND is bare —
-proven by the official `code-review`/`feature-dev` plugins). The instruction body lives in
-`commands/daily-call-tasks.md`; there is deliberately NO `SKILL.md` and NO `skills/<name>/` — do not "restore" them.
+**SKILL layout** — `skills/daily-call-tasks/SKILL.md` (user-invocable). Claude Code namespaces every plugin component, so it invokes as `/daily-call-tasks:daily-call-tasks` or via natural language; there is no bare `/daily-call-tasks` for a marketplace plugin.
 ```
 daily-call-tasks/
-  commands/daily-call-tasks.md   # the instruction body → bare /daily-call-tasks
+  skills/daily-call-tasks/SKILL.md   # the skill (user-invocable)
   references/{extraction.md, commit-rules.md}   # read via ${CLAUDE_PLUGIN_ROOT}/references/…
   .claude-plugin/plugin.json
   README.md  QUICKSTART.md

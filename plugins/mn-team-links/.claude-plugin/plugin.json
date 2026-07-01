@@ -1,6 +1,6 @@
 {
   "name": "mn-team-links",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Resolve an MN Service (Meeting Notes) team to its Google Drive transcript folder link. Reads the team list live from the n8n MN Service config via the connected n8n MCP and prints a compact Team -> Drive-folder table. Read-only, no stored secret.",
   "command": "`/mn-team-links [team]`",
   "requirements": "**n8n MCP** connected. (No secret needed for normal use.)",
