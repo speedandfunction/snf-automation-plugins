@@ -1,7 +1,8 @@
 ---
-argument-hint: "[--week=last|this|YYYY-Www] [--out=path] [--setup] [--yes]"
+name: ai-digest
 description: Drafts a weekly cross-department "AI Automation digest" for the Speed & Function automation team — top-3 Closed-this-week / In-progress / Priorities, so other departments can see what the team is doing. Notes-led: the team's own meeting-notes are the primary narrative; ClickUp supplies the dated "what closed" signal and the priority backlog. Every line is cited; the output is a PRINT-ONLY draft a human edits and the lead publishes — it never auto-posts. Read-only against Google Drive + ClickUp. Makes NO "verified/corroborated" claims (the author of the note, the ticket, and the call are the same person — the citation, not a confidence badge, is the honesty). Use when the user wants to draft the weekly AI-Automation department digest, a cross-dept progress update, or "what did the automation team ship/work on this week". Geekbot is an OPTIONAL 3rd source (enrich-only, OFF unless a key is configured). Prints the draft only — no fuzzy call↔task join, no delivery (v2).
 disable-model-invocation: false
+user-invocable: true
 ---
 
 # /ai-digest — Weekly AI-Automation Digest (notes + ClickUp + optional Geekbot, print-only draft)

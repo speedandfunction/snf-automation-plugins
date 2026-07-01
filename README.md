@@ -52,27 +52,22 @@ Install any subset:
 .claude-plugin/marketplace.json   # marketplace manifest — the CANONICAL plugin list
 plugins/<name>/
   .claude-plugin/plugin.json      # plugin manifest (+ command/requirements for the README table)
-  commands/<name>.md              # the slash COMMAND (the instruction body) → registers the bare /<name>
-  references/ | scripts/ | config/ # supporting files the command reads via ${CLAUDE_PLUGIN_ROOT}/references/…
+  skills/<name>/SKILL.md          # the skill (user-invocable) — the instruction body
+  references/ | scripts/ | config/ # supporting files, read via ${CLAUDE_PLUGIN_ROOT}/references/…
 scripts/gen-readme.mjs            # regenerates this README's plugin table from the manifests
 .github/workflows/readme.yml      # CI: runs gen-readme on every push, auto-commits the result
 ```
 
-### Naming convention — clean bare `/<plugin>` invocation (COMMAND layout)
-To register a **bare `/<plugin>`** slash (e.g. `/ai-digest`, NOT `/ai-digest:ai-digest`), the plugin must
-expose a **COMMAND** named after the plugin — `commands/<plugin>.md` holding the instruction body — and
-**no skill** (no `skills/<name>/`, no root `SKILL.md`):
-```
-plugins/<plugin>/
-  .claude-plugin/plugin.json
-  commands/<plugin>.md   # the whole instruction body → Claude Code registers the bare /<plugin>
-  references/…           # read from the command via ${CLAUDE_PLUGIN_ROOT}/references/<file>.md
-```
-**Empirically (plugin-catalog-cache):** a **COMMAND** registers a **bare `/<name>`** (proven by the official
-`code-review` / `feature-dev` plugins — `commands:[<name>]`, `skills:[]`). A **SKILL** — whether under
-`skills/<name>/` OR a single root `SKILL.md`, and regardless of `user-invocable` — is **always namespaced
-`/<plugin>:<skill>`** (that is what produced the doubled `morning-brief:morning-brief`). So a clean bare
-command requires the command-only shape, not a skill. Keep the command basename == the plugin name.
+### Invocation & naming — the colon is mandatory (Claude Code limitation)
+Claude Code **always namespaces** a plugin's slash components as **`/<plugin>:<name>`** — this is
+mandatory (it prevents collisions when several installed plugins ship the same command). There is **NO
+bare `/<plugin>`** for a marketplace-distributed plugin; even Anthropic's own plugins are `/ultra:run`,
+`/figma:figma-use`. So these skills invoke as `/morning-brief:morning-brief` etc., **or by natural
+language** ("run morning-brief") — which sidesteps the colon entirely and is how the desktop / Cowork
+app invokes them. (A truly bare `/<name>` is only possible via a personal `~/.claude/commands/<name>.md`,
+which each user installs locally — the marketplace cannot ship it. See Claude Code
+[plugins reference](https://code.claude.com/docs/en/plugins-reference).)
+
 
 Bundled scripts are addressed via `${CLAUDE_PLUGIN_ROOT}` so they resolve regardless of CWD.
 
