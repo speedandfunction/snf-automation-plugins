@@ -33,10 +33,10 @@ The user types `<num>→<verb>` pairs. Resolve `<num>`→task id ONLY from FROZE
 2. PREVIEW + confirm via `AskUserQuestion` (Apply / Edit / Cancel). Only the user's typed `<num>→<verb>` pairs ever become writes.
 3. On Apply, loop tasks ONE AT A TIME. For each row, re-resolve `task_id` from `FROZEN_MAP[<num>]` and assert it equals the `ticket-id` shown in the previewed table before calling — mismatch → ABORT that row (map drifted), never fire it. Then `clickup_update_task(task_id, status="<name>")`. Catch per-task errors → push to `failed[]`; push successes to `applied[]`. Never roll back applied rows on a later failure; never retry-loop.
 4. Re-read each updated task (`clickup_get_task`) or trust the returned object to confirm the landed status.
-5. Auto-report `applied[]` / `failed[]`. Any task whose new status is **Closed** is recorded → it's UNION'd into Step 3B "what was done" (so a just-closed task shows even if a re-query lags).
+5. Auto-report `applied[]` / `failed[]`. Any task whose new status is **Closed** is recorded → it's UNION'd into Step 4B "what was done" (so a just-closed task shows even if a re-query lags).
 - **Scheduled mode:** present the grouped list read-only; SKIP the question and the apply entirely (zero writes).
 
-## Step 3 — "What was done": Closed-in-window ∪ transitions ∪ just-applied closes
+## Step 4 — "What was done": Closed-in-window ∪ transitions ∪ just-applied closes
 
 ### Closed in the window (exact)
 `clickup_filter_tasks(assignees=[me], include_closed=true, date_closed_from=<computed bound>, date_closed_to=<now>)`.
@@ -67,7 +67,7 @@ State file: `~/.claude/morning-brief/snapshot-<YYYY-MM-DD>.json` (date key in us
 ### Reviewer resolution — "sent for review TO WHOM"
 For each task classified `→ in review`: `clickup_get_task_comments(task_id)` → most recent comment with `resolved == false` AND `assignee != null`. `assignee` = the person it was sent to. Name from `assignee.username`; Slack mention via the TeamMD resolver (by `assignee.id` = ClickUp id, or `assignee.email`). No such comment → "sent for review" with no name (NEVER guess a reviewer).
 
-## Step 4 — "On your plate" dedup: marker-first → Jaccard
+## Step 5 — "On your plate" dedup: marker-first → Jaccard
 The Step-1 call-items are deduped against the user's OPEN tasks so only genuinely un-ticketed items get the "⟂ not yet in ClickUp" flag.
 1. **Marker-first.** Items previously ticketed via `daily-call-tasks` carry a hidden marker in the ClickUp task description:
    ```
@@ -78,14 +78,14 @@ The Step-1 call-items are deduped against the user's OPEN tasks so only genuinel
 3. Closed tasks and tasks not assigned to the user are NEVER matched → a resembling call item stays flagged as new.
 This mirrors `daily-call-tasks`'s dedup so the two skills agree on "already ticketed".
 
-## Step 5 — Block-reason: the reason is the USER's input (S9)
+## Step 6 — Block-reason: the reason is the USER's input (S9)
 **The block reason comes from the USER — this flow ASKS for it (Step 5 asks blockers WITH a reason). Do NOT derive it from a "status-change note recorded WHEN it was blocked": no ClickUp tool returns status-change/activity history** — only `clickup_get_task` (the task's CURRENT status) and `clickup_get_task_comments` exist, so that history-derivation is impossible and must not be specified. The authoritative reason is exactly what the user types.
 1. **Ask the user** why each Blocked task is blocked (the Step-5 `AskUserQuestion` already does this — `add <n>: <reason>`). Whatever they type is the reason.
 2. **Optional suggestion only:** you MAY read `clickup_get_task(task_id)` (a current-status label like "Blocked: waiting on X") or `clickup_get_task_comments(task_id)` (the most recent UNRESOLVED comment) and OFFER it as a starting suggestion — but it is a hint, not the reason; the user's input wins.
 3. If the user states no reason, render "blocked (reason not stated)". **Never invent a reason, and never reconstruct one from non-existent status-change history.**
 The user's added reasons are display-only text (no ClickUp write).
 
-## Step 5/8 — TeamMD resolver
+## Step 7/8 — TeamMD resolver
 Resolve the roster from the FIRST that exists — config `teammd_path` → `~/Work/team.md` (capital W) → a synced `team.md` under `~/.claude/**` or a `Speed and Function` folder (Andy's TeamMD skill's synced copy — prefer it when present). Two GFM pipe-table sections — `## Full Members` and `## External / Multi-Channel Guests` — **union both**. Columns, in order:
 ```
 Full Name | Slack Username | Display Name | Slack ID | Work Email | ClickUp ID
@@ -98,14 +98,14 @@ Resolvers:
 - `name_to_slack_id(name) → [candidates]` — returns a LIST; **>1 hit ⇒ ambiguous, do NOT auto-pick** (ask or keep plain name).
 **Mention format:** emit `<@SlackID>` (angle bracket + `@` + the raw `U…` id, e.g. `<@U01ABCDEF>`) — never the username or display name. Known ambiguities to respect: duplicate display names exist (two "Lana Mamukova", two "Misha") — first-name-only resolution is forbidden. **Fail closed (Hard Rule 4):** an unresolved/ambiguous name in text destined for a Geekbot post → keep the plain name, WARN, never emit a broken `@`.
 
-## Step 6 — Emails (Gmail connector)
+## Step 5 (Emails — Gmail connector)
 Detected by a `*mail*`/`*gmail*` search-threads tool in Step 0, whose **exact name was captured there** (S13 — the connector id varies between sessions/installs; do NOT hardcode `mcp__claude_ai_Gmail__search_threads`, or invocation can fail while glob-detection "passed", silently dropping this optional section). **Read-only**, bounded:
 - `<detected_search_threads_tool>(query="is:unread is:important in:inbox", pageSize=15, view="THREAD_VIEW_MINIMAL")` — call the tool name captured in Step 0 (e.g. `mcp__claude_ai_Gmail__search_threads`, but use whatever was detected). Minimal view returns each thread's subject + sender + snippet (enough to build the task; no `get_thread` needed). `is:important` ≈ Gmail's Priority-Inbox proxy. If the detected tool errors on invoke → skip the section with a hint, never fail the run.
 - Each unread thread → one plate item **"reply to `<sender>` — `<subject>`"** — a TASK suggestion. The skill has `create_draft` access but NEVER uses it.
 - Cap at `pageSize` (≤15); if more, append "+N more unread important".
 - No Gmail tool → skip with a hint.
 
-## Step 5 — Mood (the standup's real, multiple-choice options)
+## Step 3 — Mood (the standup's real, multiple-choice options)
 The mood question is **multiple-choice** (it has `answer_choices`); the posted answer MUST be one of those exact strings (S8). The known Geekbot mood options Andy configured — present THESE exact choices (emoji included) via `AskUserQuestion`. They MUST appear:
 - 🚀 **Full power**
 - 🙂 **Good**

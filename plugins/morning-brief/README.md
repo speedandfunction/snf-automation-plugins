@@ -11,14 +11,14 @@ no cross-plugin imports.
 > use. ClickUp 86cacn12x.
 
 ## The flow (`/morning-brief`)
-1. **Source step** — runs the call extraction (attended calls → Meeting Notes → **Sonnet** sub-agents) for the window, kept as the call-items source.
-2. **Status-management** — lists **ALL your tasks grouped by status** (Closed / In Progress / In Review / To-Do / Blocked) with one continuous unique number, and asks *"what to change?"*. You command changes (`3→on hold, 4→done, 2→backlog`); it maps each verb to a real workspace status and, after a preview, **APPLIES them in ClickUp** (`clickup_update_task`, status field only). A task you move to **Closed** feeds *what was done*.
-3. **What was done** — attended calls (grouped) + **Closed** tasks + In Progress / In Review transitions since the window, *including the changes you just applied*. ("Sent for review *to whom*" is resolved from the task's assigned comment.)
-4. **On your plate today** — current **In Progress + To-Do** (+ not-yet-ticketed call items, flagged `⟂ not yet in ClickUp`), numbered. You pick which to report (`1,3,7`) — to-dos are a weekly bucket, not all for today.
-5. **Blockers WITH the reason** — *"`<task>` is blocked because `<reason>`"* (from the status / the comment recorded when it was blocked); you can add extra reasons.
-6. **Open questions** — your own, and to whom (resolved to `<@SlackID>` via a `team.md` roster).
-7. **Mood** — picked from your standup's **real Geekbot mood options** when a Geekbot key is connected (read live from the Geekbot API); otherwise a sensible default set (the five Andy configured), never invented per-run.
-8. **Post to Geekbot** — preview the exact payload, then post (→ Slack), with each task's ClickUp ticket id kept for quick search.
+1. **Calls → ClickUp** — extracts action items from your attended calls (Meeting Notes → **Sonnet** sub-agents), shows them, asks *"add these to ClickUp?"* → on approval **creates the chosen tasks** (self-only, marker-dedup, one confirm).
+2. **Status-management** — lists **ALL your tasks grouped by status** with one continuous number, asks *"what to change?"*; you command changes (`3→done, 4→on hold`) and it **APPLIES them in ClickUp** (status field only, after a preview). A task you move to **Closed** feeds *what was done*.
+3. **Mood** — picked from your standup's **real Geekbot mood options** (live when a key is connected; else the five Andy configured), posted verbatim as Geekbot Q1.
+4. **What was done** — attended calls (grouped) + Closed/changed tasks since the window (incl. what you just applied); you **approve** the report. ("Sent for review *to whom*" from the task's assigned comment.)
+5. **On your plate today** — **today's calendar** + current **In Progress + To-Do** (+ In Review candidates + any declined call-items), numbered; you pick which to report.
+6. **Blockers (with reason) + On-Hold** — *"`<task>` is blocked because `<reason>`"*; **the reason comes from YOU** (no ClickUp API returns block history) — the step asks for it.
+7. **Open questions** — your own, and to whom (resolved to `<@SlackID>` via a `team.md` roster).
+8. **Post to Geekbot** — preview the exact payload in your standup order (Mood → done → plate → blockers → questions), then post (→ Slack), with clickable ClickUp task links.
 
 ```text
 /morning-brief        # full interactive run → status changes → sections → post
