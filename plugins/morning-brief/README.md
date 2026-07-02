@@ -33,10 +33,10 @@ No flags: setup (identity + dependencies) is **transparent on first run**; a **s
 - **Optional (degrade gracefully if absent):** a **Geekbot** API key (`GEEKBOT_API_KEY` or `~/.claude/morning-brief/config.json` → `geekbot.api_key`) for auto-post + real mood options; the **Gmail** connector for the Emails plate-items; a `~/Work/team.md` roster for `<@SlackID>` mentions.
 
 ## Guarantees
-- **Read-only except two user-commanded writes:** the ClickUp status changes you explicitly type in the status step (status field only, after a preview), and the **confirmed** Geekbot post. Plus local-only writes: the self-onboarded identity file and a state snapshot under `~/.claude/morning-brief/`.
+- **Writes only what you command:** the **Step-1 call-tasks you approve to create** (self-only, marker-dedup), the ClickUp status changes you type in the status step (status field only, after a preview), and the **confirmed** Geekbot post. Plus local-only writes: the self-onboarded identity file and a state snapshot under `~/.claude/morning-brief/`.
 - **Self only** — speaks for you, never assigns or @-mentions on anyone else's behalf; **fails closed** on any unresolved mention rather than post a broken `@`.
 - **Never invents** — call items carry verbatim citations; a blocker with no recorded reason says so; a verb that doesn't map to a real status is asked, never guessed.
-- **Never creates/edits** ClickUp task name/description/assignee here (that's `daily-call-tasks`) — the only ClickUp write is the status change you command.
+- **Step 1 creates the call-tasks you approve** (self-only, marker-dedup); beyond that it never EDITS an existing task's name/description/assignee (that stays `daily-call-tasks`). The ClickUp writes are: the Step-1 create + the status changes you command.
 
 ## Layout
 The skill lives at `skills/morning-brief/SKILL.md` (user-invocable). Claude Code namespaces every plugin component, so it invokes as `/morning-brief:morning-brief` OR via natural language ("run morning-brief") — there is no bare `/morning-brief` for a marketplace plugin (a Claude Code limitation).
